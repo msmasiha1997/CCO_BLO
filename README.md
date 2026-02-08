@@ -20,6 +20,15 @@ python scripts/run_synthetic.py --config configs/synth_gaussian_d10_m100.yaml
 
 Outputs (CSV + PNG) go under `runs/`.
 
+## Sweeps (synthetic)
+
+```bash
+python scripts/sweep_synthetic.py --config configs/sweep_replicate_slides.yaml
+python scripts/sweep_synthetic.py --config configs/sweep_scaling_gaussian_linear.yaml
+```
+
+Each sweep writes `rows.csv` and `summary.csv` under `runs/<run_name>/`.
+
 ## Server workflow
 
 1. Push changes from your laptop.
@@ -30,4 +39,3 @@ git pull
 source .venv/bin/activate  # or conda activate ...
 python scripts/run_synthetic.py --config configs/synth_gaussian_d30_m100.yaml
 ```
-

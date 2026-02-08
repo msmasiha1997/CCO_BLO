@@ -1,0 +1,129 @@
+sweep:
+  run_name: scaling_gaussian_linear
+  cases:
+    # Dimension scaling @ M=100, delta=0.05
+    - id: d10_m100_delta0p05
+      seed_start: 0
+      seed_count: 20
+      solver:
+        example_name: gaussian_linear
+        dim: 10
+        delta: 0.05
+        mu: 1.0
+        mu_final: 0.01
+        mu_schedule: geom
+        theta: 0.05
+        eps: 0.0001
+        M: 100
+        outer_steps: 3000
+        inner_steps: 60
+        eta: 0.01
+        gamma: 1.0
+        inner_solver: bisect
+        outer_optimizer: adam
+        x0: null
+        x_min: null
+        x_max: null
+        resample_z_each_outer: true
+        eval_samples: 20000
+
+    - id: d30_m100_delta0p05
+      seed_start: 0
+      seed_count: 20
+      solver:
+        example_name: gaussian_linear
+        dim: 30
+        delta: 0.05
+        mu: 1.0
+        mu_final: 0.01
+        mu_schedule: geom
+        theta: 0.05
+        eps: 0.0001
+        M: 100
+        outer_steps: 4000
+        inner_steps: 60
+        eta: 0.008
+        gamma: 1.0
+        inner_solver: bisect
+        outer_optimizer: adam
+        x0: null
+        x_min: null
+        x_max: null
+        resample_z_each_outer: true
+        eval_samples: 20000
+
+    - id: d100_m100_delta0p05
+      seed_start: 0
+      seed_count: 20
+      solver:
+        example_name: gaussian_linear
+        dim: 100
+        delta: 0.05
+        mu: 1.0
+        mu_final: 0.01
+        mu_schedule: geom
+        theta: 0.05
+        eps: 0.0001
+        M: 100
+        outer_steps: 6000
+        inner_steps: 60
+        eta: 0.005
+        gamma: 1.0
+        inner_solver: bisect
+        outer_optimizer: adam
+        x0: null
+        x_min: null
+        x_max: null
+        resample_z_each_outer: true
+        eval_samples: 20000
+
+    # Sample scaling @ d=30, delta=0.05
+    - id: d30_m250_delta0p05
+      seed_start: 0
+      seed_count: 20
+      solver:
+        example_name: gaussian_linear
+        dim: 30
+        delta: 0.05
+        mu: 1.0
+        mu_final: 0.01
+        mu_schedule: geom
+        theta: 0.05
+        eps: 0.0001
+        M: 250
+        outer_steps: 4000
+        inner_steps: 60
+        eta: 0.008
+        gamma: 1.0
+        inner_solver: bisect
+        outer_optimizer: adam
+        x0: null
+        x_min: null
+        x_max: null
+        resample_z_each_outer: true
+        eval_samples: 20000
+
+    - id: d30_m500_delta0p05
+      seed_start: 0
+      seed_count: 20
+      solver:
+        example_name: gaussian_linear
+        dim: 30
+        delta: 0.05
+        mu: 1.0
+        mu_final: 0.01
+        mu_schedule: geom
+        theta: 0.05
+        eps: 0.0001
+        M: 500
+        outer_steps: 4000
+        inner_steps: 60
+        eta: 0.008
+        gamma: 1.0
+        inner_solver: bisect
+        outer_optimizer: adam
+        x0: null
+        x_min: null
+        x_max: null
+        resample_z_each_outer: true
+        eval_samples: 20000

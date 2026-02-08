@@ -1,0 +1,52 @@
+sweep:
+  run_name: smoke
+  cases:
+    - id: smoke_example1
+      seed_start: 0
+      seed_count: 2
+      solver:
+        example_name: example1
+        dim: 1
+        delta: 0.10
+        mu: 10.0
+        mu_final: null
+        mu_schedule: constant
+        theta: 0.1
+        eps: 0.01
+        M: 200
+        outer_steps: 50
+        inner_steps: 10
+        eta: 0.2
+        gamma: 1.0
+        inner_solver: bisect
+        outer_optimizer: adam
+        x0: [-5.0]
+        x_min: [-10.0]
+        x_max: [5.0]
+        resample_z_each_outer: false
+        eval_samples: 2000
+
+    - id: smoke_gaussian_d10
+      seed_start: 0
+      seed_count: 2
+      solver:
+        example_name: gaussian_linear
+        dim: 10
+        delta: 0.05
+        mu: 1.0
+        mu_final: 0.2
+        mu_schedule: geom
+        theta: 0.1
+        eps: 0.01
+        M: 200
+        outer_steps: 80
+        inner_steps: 20
+        eta: 0.03
+        gamma: 1.0
+        inner_solver: bisect
+        outer_optimizer: adam
+        x0: null
+        x_min: null
+        x_max: null
+        resample_z_each_outer: true
+        eval_samples: 2000
