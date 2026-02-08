@@ -1,0 +1,313 @@
+\begin{thebibliography}{42}
+\providecommand{\natexlab}[1]{#1}
+\providecommand{\url}[1]{\texttt{#1}}
+\expandafter\ifx\csname urlstyle\endcsname\relax
+  \providecommand{\doi}[1]{doi: #1}\else
+  \providecommand{\doi}{doi: \begingroup \urlstyle{rm}\Url}\fi
+
+\bibitem[Anonymous(2025)]{anonymous2025stochastic}
+Anonymous.
+\newblock Stochastic regret guarantees for online zeroth- and first-order
+  bilevel optimization, 2025.
+\newblock URL \url{https://openreview.net/forum?id=nYrj9ZwgYk}.
+
+\bibitem[Ataee~Tarzanagh et~al.(2024{\natexlab{a}})Ataee~Tarzanagh, Nazari,
+  Hou, Shen, and Balzano]{ataee2024oagd}
+D.~Ataee~Tarzanagh, P.~Nazari, B.~Hou, L.~Shen, and L.~Balzano.
+\newblock Online bilevel optimization: Regret analysis of online alternating
+  gradient methods.
+\newblock In \emph{Proceedings of AISTATS 2024}, volume 238 of \emph{PMLR},
+  2024{\natexlab{a}}.
+\newblock URL
+  \url{https://proceedings.mlr.press/v238/ataee-tarzanagh24a/ataee-tarzanagh24a.pdf}.
+
+\bibitem[Ataee~Tarzanagh et~al.(2024{\natexlab{b}})Ataee~Tarzanagh, Nazari,
+  Hou, Shen, and Balzano]{tarzanagh2024online}
+D.~Ataee~Tarzanagh, P.~Nazari, B.~Hou, L.~Shen, and L.~Balzano.
+\newblock Online bilevel optimization: Regret analysis of online alternating
+  gradient methods.
+\newblock In \emph{Proceedings of the 27th International Conference on
+  Artificial Intelligence and Statistics}, volume 238 of \emph{Proceedings of
+  Machine Learning Research}, pages 2854--2862. PMLR, 2024{\natexlab{b}}.
+\newblock URL \url{https://proceedings.mlr.press/v238/ataee-tarzanagh24a.html}.
+
+\bibitem[Besbes et~al.(2015)Besbes, Gur, and Zeevi]{besbes2015nonstationary}
+O.~Besbes, Y.~Gur, and A.~Zeevi.
+\newblock Non-stationary stochastic optimization.
+\newblock \emph{Operations Research}, 63\penalty0 (5):\penalty0 1227--1244,
+  2015.
+\newblock \doi{10.1287/opre.2015.1405}.
+
+\bibitem[Bohne et~al.(2024)Bohne, Rosenberg, Kazantsev, and
+  Polak]{bohne2024sobbo}
+J.~Bohne, D.~Rosenberg, G.~Kazantsev, and P.~Polak.
+\newblock Online nonconvex bilevel optimization with bregman divergences.
+\newblock \emph{arXiv preprint arXiv:2409.10470}, 2024.
+\newblock URL \url{https://arxiv.org/abs/2409.10470}.
+
+\bibitem[Bracken and McGill(1973)]{bracken1973mathematical}
+J.~Bracken and J.~T. McGill.
+\newblock Mathematical programs with optimization problems in the constraints.
+\newblock \emph{Operations research}, 21\penalty0 (1):\penalty0 37--44, 1973.
+
+\bibitem[Bubeck et~al.(2015)]{bubeck2015convex}
+S.~Bubeck et~al.
+\newblock Convex optimization: Algorithms and complexity.
+\newblock \emph{Foundations and Trends{\textregistered} in Machine Learning},
+  8\penalty0 (3-4):\penalty0 231--357, 2015.
+
+\bibitem[Cai et~al.(2020)Cai, Gan, Wang, Zhang, and Han]{cai2020onceforall}
+H.~Cai, C.~Gan, T.~Wang, Z.~Zhang, and S.~Han.
+\newblock Once for all: Train one network and specialize it for efficient
+  deployment.
+\newblock In \emph{International Conference on Learning Representations}, 2020.
+\newblock URL \url{https://openreview.net/forum?id=HylxE1HKwS}.
+
+\bibitem[Chen et~al.(2024)Chen, Xu, and Zhang]{chen2024finding}
+L.~Chen, J.~Xu, and J.~Zhang.
+\newblock On finding small hyper-gradients in bilevel optimization: Hardness
+  results and improved analysis.
+\newblock In \emph{The Thirty Seventh Annual Conference on Learning Theory},
+  pages 947--980. PMLR, 2024.
+
+\bibitem[Chen et~al.(2025{\natexlab{a}})Chen, Ma, and Zhang]{ChenMaZhang2025}
+L.~Chen, Y.~Ma, and J.~Zhang.
+\newblock Near-optimal nonconvex-strongly-convex bilevel optimization with
+  fully first-order oracles.
+\newblock \emph{Journal of Machine Learning Research}, 26:\penalty0 1--56,
+  2025{\natexlab{a}}.
+\newblock URL \url{http://jmlr.org/papers/v26/23-1104.html}.
+\newblock CC-BY 4.0.
+
+\bibitem[Chen et~al.(2025{\natexlab{b}})Chen, Ma, and
+  Zhang]{chen2025fullyfirstorder}
+L.~Chen, Y.~Ma, and J.~Zhang.
+\newblock Near-optimal nonconvex--strongly-convex bilevel optimization with
+  fully first-order oracles.
+\newblock \emph{Journal of Machine Learning Research}, 26, 2025{\natexlab{b}}.
+\newblock URL \url{https://www.jmlr.org/papers/volume26/23-1104/23-1104.pdf}.
+
+\bibitem[Colson et~al.(2007)Colson, Marcotte, and Savard]{colson2007overview}
+B.~Colson, P.~Marcotte, and G.~Savard.
+\newblock An overview of bilevel optimization.
+\newblock \emph{Annals of Operations Research}, 153\penalty0 (1):\penalty0
+  235--256, 2007.
+\newblock \doi{10.1007/s10479-007-0176-2}.
+
+\bibitem[Cutkosky and Orabona(2019{\natexlab{a}})]{cutkosky2019momentum}
+A.~Cutkosky and F.~Orabona.
+\newblock Momentum-based variance reduction in non-convex {SGD}.
+\newblock In \emph{Advances in Neural Information Processing Systems
+  (NeurIPS)}, 2019{\natexlab{a}}.
+
+\bibitem[Cutkosky and Orabona(2019{\natexlab{b}})]{cutkosky2019storm}
+A.~Cutkosky and F.~Orabona.
+\newblock Momentum-based variance reduction in non-convex sgd.
+\newblock In \emph{Advances in Neural Information Processing Systems
+  (NeurIPS)}, 2019{\natexlab{b}}.
+
+\bibitem[Dagr{\'e}ou et~al.(2022)Dagr{\'e}ou, Ablin, Vaiter, and
+  Moreau]{dagreou2022framework}
+M.~Dagr{\'e}ou, P.~Ablin, S.~Vaiter, and T.~Moreau.
+\newblock A framework for bilevel optimization that enables stochastic and
+  global variance reduction algorithms.
+\newblock In \emph{Advances in Neural Information Processing Systems
+  (NeurIPS)}, 2022.
+\newblock URL
+  \url{https://proceedings.neurips.cc/paper_files/paper/2022/aa84ec1ac3f5fdcf77bce2c22705ab77-Paper-Conference.pdf}.
+
+\bibitem[Dempe(2002)]{dempe2002foundations}
+S.~Dempe.
+\newblock \emph{Foundations of Bilevel Programming}.
+\newblock Springer, New York, 2002.
+
+\bibitem[Fang et~al.(2018)Fang, Li, Lin, and Zhang]{fang2018spider}
+C.~Fang, C.~J. Li, Z.~Lin, and T.~Zhang.
+\newblock {SPIDER}: Near-optimal nonconvex optimization via stochastic
+  path-integrated differential estimator.
+\newblock In \emph{Advances in Neural Information Processing Systems
+  (NeurIPS)}, 2018.
+
+\bibitem[Franceschi et~al.(2017)Franceschi, Donini, Frasconi, and
+  Pontil]{franceschi2017forwardreverse}
+L.~Franceschi, M.~Donini, P.~Frasconi, and M.~Pontil.
+\newblock Forward and reverse gradient-based hyperparameter optimization.
+\newblock In \emph{Proceedings of the 34th International Conference on Machine
+  Learning (ICML)}, volume~70 of \emph{PMLR}, pages 1165--1173, 2017.
+
+\bibitem[Franceschi et~al.(2018)Franceschi, Frasconi, Salzo, Grazzi, and
+  Pontil]{franceschi2018bilevel}
+L.~Franceschi, P.~Frasconi, S.~Salzo, R.~Grazzi, and M.~Pontil.
+\newblock Bilevel programming for hyperparameter optimization and
+  meta-learning.
+\newblock In \emph{Proceedings of the 35th International Conference on Machine
+  Learning (ICML)}, volume~80 of \emph{PMLR}, pages 1568--1577, 2018.
+
+\bibitem[Gama et~al.(2014)Gama, {\v{Z}}liobaite, Bifet, Pechenizkiy, and
+  Bouchachia]{gama2014conceptdrift}
+J.~Gama, I.~{\v{Z}}liobaite, A.~Bifet, M.~Pechenizkiy, and A.~Bouchachia.
+\newblock A survey on concept drift adaptation.
+\newblock \emph{ACM Computing Surveys}, 46\penalty0 (4), 2014.
+\newblock \doi{10.1145/2523813}.
+
+\bibitem[Gould and Fernando(2016)]{gould2016argmin}
+S.~Gould and B.~Fernando.
+\newblock On differentiating parameterized argmin and argmax problems with
+  application to bi-level optimization.
+\newblock Technical Report TR-CS-16-01, Australian National University, 2016.
+\newblock arXiv:1607.05447.
+
+\bibitem[Hallak et~al.(2021)Hallak, Mertikopoulos, and Cevher]{hallak2021prox}
+N.~Hallak, P.~Mertikopoulos, and V.~Cevher.
+\newblock Regret minimization in stochastic non-convex learning via a
+  proximal-gradient approach.
+\newblock In \emph{Proceedings of the 38th International Conference on Machine
+  Learning (ICML)}, volume 139 of \emph{PMLR}, pages 4008--4017, 2021.
+
+\bibitem[Hazan(2016)]{hazan2016oco}
+E.~Hazan.
+\newblock \emph{Introduction to Online Convex Optimization}, volume~2 of
+  \emph{Foundations and Trends in Optimization}.
+\newblock now Publishers, 2016.
+
+\bibitem[H{\'e}liou et~al.(2020)H{\'e}liou, Martin, Mertikopoulos, and
+  Rahier]{heliou2020imperfect}
+A.~H{\'e}liou, M.~Martin, P.~Mertikopoulos, and T.~Rahier.
+\newblock Online non-convex optimization with imperfect feedback.
+\newblock In \emph{Advances in Neural Information Processing Systems
+  (NeurIPS)}, 2020.
+
+\bibitem[H{\'e}liou et~al.(2021)H{\'e}liou, Martin, Mertikopoulos, and
+  Rahier]{heliou2021zeroth}
+A.~H{\'e}liou, M.~Martin, P.~Mertikopoulos, and T.~Rahier.
+\newblock Zeroth-order non-convex learning via hierarchical dual averaging.
+\newblock In \emph{Proceedings of the 38th International Conference on Machine
+  Learning (ICML)}, volume 139 of \emph{PMLR}, pages 4192--4202, 2021.
+
+\bibitem[Ji et~al.(2021)Ji, Yang, and Liang]{ji2021bilevel}
+K.~Ji, J.~Yang, and Y.~Liang.
+\newblock Bilevel optimization: Convergence analysis and enhanced design.
+\newblock In \emph{Proceedings of the 38th International Conference on Machine
+  Learning (ICML)}, volume 139 of \emph{PMLR}, pages 4882--4892, 2021.
+
+\bibitem[Kwon et~al.(2023)Kwon, Kwon, Wright, and Nowak]{kwon2023fully}
+J.~Kwon, D.~Kwon, S.~Wright, and R.~Nowak.
+\newblock A fully first-order method for stochastic bilevel optimization.
+\newblock \emph{arXiv preprint arXiv:2301.10945}, 2023.
+
+\bibitem[LeCun and Cortes(2010)]{lecun-mnisthandwrittendigit-2010}
+Y.~LeCun and C.~Cortes.
+\newblock {MNIST} handwritten digit database.
+\newblock 2010.
+\newblock URL \url{http://yann.lecun.com/exdb/mnist/}.
+
+\bibitem[Li et~al.(2021)Li, Zhang, Thrampoulidis, Chen, and
+  Oymak]{li2021autobalance}
+M.~Li, X.~Zhang, C.~Thrampoulidis, J.~Chen, and S.~Oymak.
+\newblock Autobalance: Optimized loss functions for imbalanced data.
+\newblock In A.~Beygelzimer, Y.~Dauphin, P.~Liang, and J.~W. Vaughan, editors,
+  \emph{Advances in Neural Information Processing Systems}, 2021.
+\newblock URL \url{https://openreview.net/forum?id=ebQXflQre5a}.
+
+\bibitem[Lin et~al.(2023{\natexlab{a}})Lin, Ji, Liang, and
+  Shroff]{lin2023sobow}
+S.~Lin, K.~Ji, Y.~Liang, and N.~Shroff.
+\newblock Non-convex bilevel optimization with time-varying objective
+  functions.
+\newblock In \emph{Advances in Neural Information Processing Systems
+  (NeurIPS)}, 2023{\natexlab{a}}.
+\newblock URL
+  \url{https://proceedings.neurips.cc/paper_files/paper/2023/file/5ee60ca5686bbcf756e56a6c75e66f32-Paper-Conference.pdf}.
+
+\bibitem[Lin et~al.(2023{\natexlab{b}})Lin, Ji, Liang, and
+  Shroff]{lin2024nonconvex}
+S.~Lin, K.~Ji, Y.~Liang, and N.~Shroff.
+\newblock Non-convex bilevel optimization with time-varying objective
+  functions.
+\newblock In \emph{Advances in Neural Information Processing Systems},
+  2023{\natexlab{b}}.
+\newblock URL
+  \url{https://proceedings.neurips.cc/paper/2023/hash/5ee60ca5686bbcf756e56a6c75e66f32-Abstract-Conference.html}.
+
+\bibitem[Lin et~al.(2023{\natexlab{c}})Lin, Sow, Ji, Liang, and
+  Shroff]{lin2023nonconvex}
+S.~Lin, D.~Sow, K.~Ji, Y.~Liang, and N.~Shroff.
+\newblock Non-convex bilevel optimization with time-varying objective
+  functions.
+\newblock In \emph{Thirty-seventh Conference on Neural Information Processing
+  Systems}, 2023{\natexlab{c}}.
+\newblock URL \url{https://openreview.net/forum?id=X9Vjq9Fuhq}.
+
+\bibitem[Liu et~al.(2019)Liu, Simonyan, and Yang]{liu2018darts}
+H.~Liu, K.~Simonyan, and Y.~Yang.
+\newblock Darts: Differentiable architecture search.
+\newblock In \emph{International Conference on Learning Representations}, 2019.
+\newblock URL \url{https://openreview.net/forum?id=S1eYHoC5FX}.
+
+\bibitem[Lorraine et~al.(2020)Lorraine, Vicol, and
+  Duvenaud]{lorraine2020implicit}
+J.~Lorraine, P.~Vicol, and D.~Duvenaud.
+\newblock Optimizing millions of hyperparameters by implicit differentiation.
+\newblock In \emph{Proceedings of AISTATS 2020}, volume 108 of \emph{PMLR},
+  pages 1540--1552, 2020.
+
+\bibitem[Maclaurin et~al.(2015)Maclaurin, Duvenaud, and
+  Adams]{maclaurin2015reversible}
+D.~Maclaurin, D.~Duvenaud, and R.~P. Adams.
+\newblock Gradient-based hyperparameter optimization through reversible
+  learning.
+\newblock In \emph{Proceedings of the 32nd International Conference on Machine
+  Learning (ICML)}, volume~37 of \emph{PMLR}, pages 2113--2122, 2015.
+
+\bibitem[Nazari et~al.(2025)Nazari, Hou, Tarzanagh, Shen, and
+  Michailidis]{OBORegretAnon}
+P.~Nazari, B.~Hou, D.~A. Tarzanagh, L.~Shen, and G.~Michailidis.
+\newblock Stochastic regret guarantees for online zeroth-and first-order
+  bilevel optimization.
+\newblock 2025.
+
+\bibitem[Padakandla et~al.(2019)Padakandla, Prabuchandran, and
+  Bhatnagar]{padakandla2019nonstationary}
+S.~Padakandla, K.~J. Prabuchandran, and S.~Bhatnagar.
+\newblock Reinforcement learning in non-stationary environments.
+\newblock \emph{arXiv preprint arXiv:1905.03970}, 2019.
+\newblock URL \url{https://arxiv.org/abs/1905.03970}.
+
+\bibitem[Pedregosa(2016)]{pedregosa2016hyperparameter}
+F.~Pedregosa.
+\newblock Hyperparameter optimization with approximate gradient.
+\newblock In \emph{Proceedings of the 33rd International Conference on Machine
+  Learning (ICML)}, volume~48 of \emph{PMLR}, pages 737--746, 2016.
+\newblock URL \url{https://proceedings.mlr.press/v48/pedregosa16.html}.
+
+\bibitem[Qui{\~n}onero-Candela et~al.(2009)Qui{\~n}onero-Candela, Sugiyama,
+  Schwaighofer, and Lawrence]{quionero2009datasetshift}
+J.~Qui{\~n}onero-Candela, M.~Sugiyama, A.~Schwaighofer, and N.~D. Lawrence,
+  editors.
+\newblock \emph{Dataset Shift in Machine Learning}.
+\newblock MIT Press, Cambridge, MA, 2009.
+\newblock ISBN 978-0262170055.
+
+\bibitem[Stadie et~al.(2020)Stadie, Zhang, and Ba]{stadie2020intrinsic}
+B.~C. Stadie, L.~Zhang, and J.~Ba.
+\newblock Learning intrinsic rewards as a bi-level optimization problem.
+\newblock In J.~Peters and D.~Sontag, editors, \emph{Proceedings of the 36th
+  Conference on Uncertainty in Artificial Intelligence (UAI)}, volume 124 of
+  \emph{Proceedings of Machine Learning Research}, pages 111--120. PMLR, Aug
+  2020.
+\newblock URL \url{https://proceedings.mlr.press/v124/stadie20a.html}.
+
+\bibitem[Tarzanagh et~al.(2024)Tarzanagh, Nazari, Hou, Shen, and
+  Balzano]{tarzanagh2024onlinebileveloptimizationregret}
+D.~A. Tarzanagh, P.~Nazari, B.~Hou, L.~Shen, and L.~Balzano.
+\newblock Online bilevel optimization: Regret analysis of online alternating
+  gradient methods, 2024.
+\newblock URL \url{https://arxiv.org/abs/2207.02829}.
+
+\bibitem[Von~Stackelberg et~al.(1953)Von~Stackelberg, Peacock, Schneider, and
+  Hutchison]{von1953theory}
+H.~Von~Stackelberg, A.~T. Peacock, E.~Schneider, and T.~Hutchison.
+\newblock The theory of the market economy.
+\newblock \emph{Economica}, 20\penalty0 (80):\penalty0 384, 1953.
+
+\end{thebibliography}

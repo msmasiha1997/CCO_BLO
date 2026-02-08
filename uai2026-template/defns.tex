@@ -1,0 +1,345 @@
+
+
+% \DeclareMathAlphabet{\mathpzc}{OT1}{pzc}{m}{it}
+% \newcommand{\lc}{\mathpzc{l}}
+
+%% A few operator definitions
+\def\tr{\mathop{\rm tr}\nolimits}%
+\def\var{\mathop{\rm Var}\nolimits}%
+\def\Var{\mathop{\rm Var}\nolimits}%
+\def\cov{\mathop{\rm Cov}\nolimits}%
+\def\Cov{\mathop{\rm Cov}\nolimits}%
+\def\diag{\mathop{\rm diag}\nolimits}%
+\def\Re{\mathop{\rm Re}\nolimits}%
+\def\Im{\mathop{\rm Im}\nolimits}%
+\def\rank{\mathop{\rm rank}\nolimits}%
+\def\essinf{\mathop{\rm ess\,inf}}%
+\def\sgn{\mathop{\rm sgn}\nolimits}%
+\def\erfc{\mathop{\rm erfc}\nolimits}%
+
+%% Mathcal (discrete sets)
+\newcommand{\Ac}{\mathcal{A}}
+\newcommand{\Bc}{\mathcal{B}}
+\newcommand{\Cc}{\mathcal{C}}
+\newcommand{\cc}{\text{\footnotesize $\mathcal{C}$} }
+\newcommand{\Dc}{\mathcal{D}}
+\newcommand{\Ec}{\mathcal{E}}
+\newcommand{\Fc}{\mathcal{F}}
+\newcommand{\Gc}{\mathcal{G}}
+\newcommand{\Hc}{\mathcal{H}}
+\newcommand{\Ic}{\mathcal{I}}
+\newcommand{\Jc}{\mathcal{J}}
+\newcommand{\Kc}{\mathcal{K}}
+\newcommand{\Lc}{\mathcal{L}}
+\providecommand{\Mc}{\mathcal{M}}
+\newcommand{\Nc}{\mathcal{N}}
+\newcommand{\Oc}{\mathcal{O}}
+\newcommand{\Pc}{\mathcal{P}}
+\newcommand{\Qc}{\mathcal{Q}}
+\newcommand{\Rc}{\mathcal{R}}
+\newcommand{\Sc}{\mathcal{S}}
+\newcommand{\Tc}{\mathcal{T}}
+\newcommand{\Uc}{\mathcal{U}}
+\newcommand{\Vc}{\mathcal{V}}
+\newcommand{\Wc}{\mathcal{W}}
+\newcommand{\Xc}{\mathcal{X}}
+\newcommand{\Yc}{\mathcal{Y}}
+\newcommand{\Zc}{\mathcal{Z}}
+\newcommand{\Acal}{\mathcal{A}}
+\newcommand{\Bcal}{\mathcal{B}}
+\newcommand{\Ccal}{\mathcal{C}}
+\newcommand{\Dcal}{\mathcal{D}}
+\newcommand{\Ecal}{\mathcal{E}}
+\newcommand{\Fcal}{\mathcal{F}}
+\newcommand{\Gcal}{\mathcal{G}}
+\newcommand{\Hcal}{\mathcal{H}}
+\newcommand{\Kcal}{\mathcal{K}}
+\newcommand{\Ncal}{\mathcal{N}}
+\newcommand{\Pcal}{\mathcal{P}}
+\newcommand{\Qcal}{\mathcal{Q}}
+\newcommand{\Rcal}{\mathcal{R}}
+\newcommand{\Scal}{\mathcal{S}}
+\newcommand{\Tcal}{\mathcal{T}}
+\newcommand{\Ucal}{\mathcal{U}}
+\newcommand{\Vcal}{\mathcal{V}}
+\newcommand{\Wcal}{\mathcal{W}}
+\newcommand{\Xcal}{\mathcal{X}}
+\newcommand{\Ycal}{\mathcal{Y}}
+\newcommand{\Zcal}{\mathcal{Z}}
+
+
+%% Mathsf 
+\newcommand{\ps}{\mathsf{p}}
+\newcommand{\qs}{\mathsf{q}}
+
+%% Mathcal bold (random discrete sets)
+\newcommand{\Acb}{\boldsymbol{\mathcal{A}}}
+\newcommand{\Bcb}{\boldsymbol{\mathcal{B}}}
+\newcommand{\Ccb}{\boldsymbol{\mathcal{C}}}
+\newcommand{\Dcb}{\boldsymbol{\mathcal{D}}}
+\newcommand{\Ecb}{\boldsymbol{\mathcal{E}}}
+\newcommand{\Fcb}{\boldsymbol{\mathcal{F}}}
+\newcommand{\Gcb}{\boldsymbol{\mathcal{G}}}
+\newcommand{\Hcb}{\boldsymbol{\mathcal{H}}}
+\newcommand{\Jcb}{\boldsymbol{\mathcal{J}}}
+\newcommand{\Kcb}{\boldsymbol{\mathcal{K}}}
+\newcommand{\Ncb}{\boldsymbol{\mathcal{N}}}
+\newcommand{\Pcb}{\boldsymbol{\mathcal{P}}}
+\newcommand{\Qcb}{\boldsymbol{\mathcal{Q}}}
+\newcommand{\Rcb}{\boldsymbol{\mathcal{R}}}
+\newcommand{\Scb}{\boldsymbol{\mathcal{S}}}
+\newcommand{\Tcb}{\boldsymbol{\mathcal{T}}}
+\newcommand{\Ucb}{\boldsymbol{\mathcal{U}}}
+\newcommand{\Vcb}{\boldsymbol{\mathcal{V}}}
+\newcommand{\Wcb}{\boldsymbol{\mathcal{W}}}
+\newcommand{\Xcb}{\boldsymbol{\mathcal{X}}}
+\newcommand{\Ycb}{\boldsymbol{\mathcal{Y}}}
+\newcommand{\Zcb}{\boldsymbol{\mathcal{Z}}}
+
+
+%% Script sets: Capacity region, set of probs, achievable rate region, etc.
+\newcommand{\Cr}{\mathscr{C}}
+\renewcommand{\Pr}{\mathscr{P}}
+\newcommand{\Rr}{\mathscr{R}}
+\newcommand{\Kr}{\mathscr{K}}
+
+
+%% Sequences
+%% TODO: Should be cleaned up
+\iffalse
+\newcommand{\Un}{{U_1,U_2,\ldots,U_n}}
+\newcommand{\Vn}{{V_1,V_2,\ldots,V_n}}
+\newcommand{\Xk}{{X^{(1)},X^{(2)},\ldots,X^{(k)}}}
+\newcommand{\xk}{{x^{(1)},x^{(2)},\ldots,x^{(k)}}}
+\newcommand{\Xm}{{X^{(1)},X^{(2)},\ldots,X^{(m)}}}
+\newcommand{\xm}{{x^{(1)},x^{(2)},\ldots,x^{(m)}}}
+\newcommand{\Xn}{{X_1,X_2,\ldots,X_n}}
+\newcommand{\xn}{{x_1,x_2,\ldots,x_n}}
+\newcommand{\Ym}{{Y^{(1)},Y^{(2)},\ldots,Y^{(m)}}}
+\newcommand{\ym}{{y^{(1)},y^{(2)},\ldots,y^{(m)}}}
+\newcommand{\Yn}{{Y_1,Y_2,\ldots,Y_n}}
+\newcommand{\yn}{{y_1,y_2,\ldots,y_n}}
+\newcommand{\Zn}{{Z_1,Z_2,\ldots,Z_n}}
+\newcommand{\zn}{{z_1,z_2,\ldots,z_n}}
+\fi
+
+
+%% Boldface vectors
+%%
+% Boldface vectors
+\newcommand{\av}{{\bf a}}
+\newcommand{\bv}{{\bf b}}
+\newcommand{\cv}{{\bf c}}
+\newcommand{\dv}{{\bf d}}
+\newcommand{\ev}{{\bf e}}
+\newcommand{\fv}{{\bf f}}
+\newcommand{\gv}{{\bf g}}
+\newcommand{\hv}{{\bf h}}
+\newcommand{\iv}{{\bf i}}
+\newcommand{\jv}{{\bf j}}
+\newcommand{\kv}{{\bf k}}
+\newcommand{\lv}{{\bf l}}
+\newcommand{\mv}{{\bf m}}
+\newcommand{\nv}{{\bf n}}
+\newcommand{\ov}{{\bf o}}
+\newcommand{\pv}{{\bf p}}
+\newcommand{\qv}{{\bf q}}
+% \newcommand{\rv}{{\bf r}}
+\newcommand{\sv}{{\bf s}}
+\newcommand{\tv}{{\bf t}}
+\newcommand{\uv}{{\bf u}}
+% \newcommand{\vv}{{\bf v}}
+\newcommand{\wv}{{\bf w}}
+\newcommand{\xv}{{\bf x}}
+\newcommand{\yv}{{\bf y}}
+\newcommand{\zv}{{\bf z}}
+\newcommand{\Av}{{\bf A}}
+\newcommand{\Bv}{{\bf B}}
+\newcommand{\Cv}{{\bf C}}
+\newcommand{\Dv}{{\bf D}}
+\newcommand{\Ev}{{\bf E}}
+\newcommand{\Fv}{{\bf F}}
+\newcommand{\Gv}{{\bf G}}
+\newcommand{\Hv}{{\bf H}}
+\newcommand{\Iv}{{\bf I}}
+\newcommand{\Jv}{{\bf J}}
+\newcommand{\Kv}{{\bf K}}
+\newcommand{\Lv}{{\bf L}}
+\newcommand{\Mv}{{\bf M}}
+\newcommand{\Nv}{{\bf N}}
+\newcommand{\Ov}{{\bf O}}
+\newcommand{\Pv}{{\bf P}}
+\newcommand{\Qv}{{\bf Q}}
+\newcommand{\Rv}{{\bf R}}
+\newcommand{\Sv}{{\bf S}}
+\newcommand{\Tv}{{\bf T}}
+\newcommand{\Uv}{{\bf U}}
+\newcommand{\Vv}{{\bf V}}
+\newcommand{\Wv}{{\bf W}}
+\newcommand{\Xv}{{\bf X}}
+\newcommand{\Yv}{{\bf Y}}
+\newcommand{\Zv}{{\bf Z}}
+
+\newcommand{\onev}{{\bf 1}}
+\newcommand{\alphav}{\boldsymbol \alpha}
+\newcommand{\betav}{\boldsymbol \beta}
+\newcommand{\gammav}{\boldsymbol \gamma}
+\newcommand{\muv}{\boldsymbol \mu}
+
+
+%% Typicality
+%% \newcommand{\feq}{\stackrel{.}{=}}
+\newcommand{\pen}{{P_e^{(n)}}}
+\newcommand{\waep}{{\mathcal{A}_{\epsilon}^{(n)}}}
+\newcommand{\aep}{{\mathcal{T}_{\epsilon}^{(n)}}}
+\newcommand{\aepvar}{{\mathcal{T}_{\epsilon'}^{(n)}}}
+\newcommand{\aepk}{{\mathcal{T}_{\epsilon}^{(k)}}}
+%%\newcommand{\saep}{{T_{\epsilon}^{(n)}}}
+%%\newcommand{\saepk}{{T_{\epsilon}^{(k)}}}
+
+%% Hats
+\newcommand{\Kh}{{\hat{K}}}
+\newcommand{\Lh}{{\hat{L}}}
+\newcommand{\Mh}{{\hat{M}}}
+\newcommand{\Sh}{{\hat{S}}}
+\newcommand{\Th}{{\hat{T}}}
+\newcommand{\Uh}{{\hat{U}}}
+\newcommand{\Vh}{{\hat{V}}}
+\newcommand{\Wh}{{\hat{W}}}
+\newcommand{\Xh}{{\hat{X}}}
+\newcommand{\Yh}{{\hat{Y}}}
+\newcommand{\Zh}{{\hat{Z}}}
+\newcommand{\kh}{{\hat{k}}}
+\newcommand{\gh}{{\hat{g}}}
+\newcommand{\lh}{{\hat{l}}}
+\newcommand{\mh}{{\hat{m}}}
+\newcommand{\ph}{{\hat{p}}}
+\newcommand{\sh}{{\hat{s}}}
+\newcommand{\uh}{{\hat{u}}}
+% \newcommand{\vh}{{\hat{v}}}
+\newcommand{\wh}{{\hat{w}}}
+\newcommand{\xh}{{\hat{x}}}
+\newcommand{\yh}{{\hat{y}}}
+\newcommand{\fh}{{\hat{f}}}
+
+
+%% Bars
+\newcommand{\kb}{{\bar{k}}}
+\newcommand{\pb}{{\bar{p}}}
+\newcommand{\qb}{{\bar{q}}}
+
+
+%% Tildes
+\newcommand{\Bt}{{\tilde{B}}}
+\newcommand{\Ct}{{\tilde{C}}}
+\newcommand{\Kt}{{\tilde{K}}}
+\newcommand{\Lt}{{\tilde{L}}}
+\newcommand{\Mt}{{\tilde{M}}}
+\newcommand{\Rt}{{\tilde{R}}}
+\newcommand{\St}{{\tilde{S}}}
+\newcommand{\Ut}{{\tilde{U}}}
+\newcommand{\Vt}{{\tilde{V}}}
+\newcommand{\Wt}{{\tilde{W}}}
+\newcommand{\Xt}{{\tilde{X}}}
+\newcommand{\Yt}{{\tilde{Y}}}
+\newcommand{\Zt}{{\tilde{Z}}}
+\newcommand{\kt}{{\tilde{k}}}
+\newcommand{\lt}{{\tilde{l}}}
+\newcommand{\mt}{{\tilde{m}}}
+% \newcommand{\rt}{{\tilde{R}}}
+\newcommand{\st}{{\tilde{s}}}
+\newcommand{\ut}{{\tilde{u}}}
+% \newcommand{\vt}{{\tilde{v}}}
+\newcommand{\wt}{{\tilde{w}}}
+\newcommand{\xt}{{\tilde{x}}}
+\newcommand{\yt}{{\tilde{y}}}
+\newcommand{\zt}{{\tilde{z}}}
+\newcommand{\pt}{{\tilde{p}}}
+
+
+%% Greek
+\def\a{\alpha}
+\def\b{\beta}
+\def\g{\gamma}
+\def\d{\delta}
+\def\e{\epsilon}
+\def\eps{\epsilon}
+\def\la{\lambda}
+\def\td{\tilde}
+\def\o{\omega}
+\def\s{\sigma}
+\def\ce{\mathfrak{C}}
+\def\Del{{\bf \Delta}}
+
+
+%% Probability and expectation
+% \DeclareMathOperator\E{E}
+\let\P\relax
+\DeclareMathOperator\P{P}
+%% \def\E{\mathrm{E}}
+%% \def\P{\mathrm{P}}
+
+%% Operators
+\DeclareMathOperator\Ex{E}
+\let\Pr\relax
+\DeclareMathOperator\Pr{P}
+%\DeclareMathOperator\Var{Var}
+%\DeclareMathOperator\Cov{Cov}
+%\DeclareMathOperator\tr{tr}
+%\DeclareMathOperator\diag{diag}
+
+%% Gaussian capacity, rate-dist, binary entropy
+\DeclareMathOperator\C{C}
+% \DeclareMathOperator\R{\mathbb{R}}
+%\DeclareMathOperator\phi{\phi_{\lambda,\}}
+%%\let\H\relax
+%%\DeclareMathOperator\H{H}
+
+%% Error symbol
+\def\error{\mathrm{e}}
+
+%% Probability distributions
+\newcommand{\Br}{\mathrm{Bern}}
+\newcommand{\Bern}{\mathrm{Bern}}
+\newcommand{\Geom}{\mathrm{Geom}}
+\newcommand{\Poisson}{\mathrm{Poisson}}
+\newcommand{\Exp}{\mathrm{Exp}}
+\newcommand{\Norm}{\mathcal{N}}
+\newcommand{\N}{\mathcal{N}}
+\newcommand{\U}{\mathcal{U}}
+
+%% Misc
+%% 
+\newcommand{\dsym}{\stackrel{\triangle}{=}}
+\newcommand\eg{e.g.,\xspace}
+\newcommand\ie{i.e.,\xspace}
+\def\textiid{i.i.d.\@\xspace}
+\newcommand\iid{\ifmmode\text{ i.i.d. } \else \textiid \fi}
+\let\textand\and
+%\renewcommand\and{\ifmmode{\text{ and }}{\textand}}
+\let\textor\or
+%\renewcommand\or{\ifmmode{\text{ or }}{\textor}}
+\newcommand{\geql}{\succeq}
+\newcommand{\leql}{\preceq}
+\newcommand{\Complex}{\mathbb{C}}
+\newcommand{\Real}{\mathbb{R}}
+\newcommand{\half}{\frac{1}{2}}
+\newcommand{\ind}{\boldsymbol{1}}
+\newcommand{\wconv}{\stackrel{w}{\Longrightarrow}}
+\newcommand{\qmf}{\mathfrak{q}}
+\newcommand{\mar}{\to}
+\newcommand{\dash}{\mbox{-}}
+
+
+%% For lecture notes
+\def\labelitemi{$\bullet$}
+\def\labelitemii{$\circ$}
+
+%%% equation environments
+\newcommand{\als}[1]{\begin{align*}#1\end{align*}}
+\newcommand{\al}[1]{\begin{align}#1\end{align}}
+\newcommand{\beqs}{\begin{equation*}}
+\newcommand{\eeqs}{\end{equation*}}
+\newcommand{\beq}{\begin{equation}}
+\newcommand{\eeq}{\end{equation}}
+

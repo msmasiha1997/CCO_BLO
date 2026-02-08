@@ -1,0 +1,668 @@
+
+
+===== PAGE 1 =====
+Chance Constraint Optimization
+Ashkan Majidi
+´Ecole Polytechnique F´ ed´ erale de Lausanne (EPFL)
+Business Analytics Laboratory (BAN)
+Summer 2025
+Supervisor: Saeed masiha
+Ashkan Majidi Chance Constraint Optimization
+
+
+===== PAGE 2 =====
+Outlines I
+1Introduction
+2Preliminaries
+3Algorithm
+4Experiments
+5Future Works
+6Bibliography
+Ashkan Majidi Chance Constraint Optimization Summer 2025 1 / 36
+
+
+===== PAGE 3 =====
+Introduction
+Ashkan Majidi Chance Constraint Optimization Summer 2025
+Introduction
+
+
+===== PAGE 4 =====
+Introduction
+Optimization in an Uncertain World
+How can a robot minimize its energy
+consumption while navigating, given that its
+sensor readings are uncertain and it must still
+avoid obstacles with high probability?
+How do we manage a power grid when
+wind/solar energy is unpredictable?
+Chance Constrained Optimization (CCO) can
+be seen as a framework for handling
+uncertainty in optimization problems.
+Ashkan Majidi Chance Constraint Optimization Summer 2025 2 / 36
+
+
+===== PAGE 5 =====
+Introduction
+CCO Real-World Applications
+Energy Management:Ensuring power supply meets demand with high
+probability, given the uncertainty of renewable sources like wind and solar.
+Finance:Designing investment portfolios where the probability of losing more
+than a certain amount is kept low.
+Robotics & Autonomous Systems:Path planning where a robot must avoid
+obstacles with high confidence despite noisy sensors.
+Supply Chain Management:Managing inventory to meet uncertain customer
+demand without frequent stockouts.
+Ashkan Majidi Chance Constraint Optimization Summer 2025 3 / 36
+
+
+===== PAGE 6 =====
+Preliminaries
+Ashkan Majidi Chance Constraint Optimization Summer 2025
+Preliminaries
+
+
+===== PAGE 7 =====
+Preliminaries
+Chance Constrained Optimization
+Definition (Chance Constrained Optimization Problem [KHVR20])
+min
+x∈X
+f(x)
+s.t.P{g(x,Z)≤0} ≥1−δ
+(1)
+whereX ⊂R d is a (deterministic) closed convex set,,Z∼P Z is random vector inR m,
+f:R d →Ris ourobjective function,g:R d ×R m →Rourchance functionand 1−δ
+our safety probability level, typically close to 1.
+We assumefandgto be convex functions w.r.t.x[ROC70].
+Not only is Chance Constraint optimization an NP-Hard problem, but even finding
+local optima is also NP-Hard.
+Ashkan Majidi Chance Constraint Optimization Summer 2025 4 / 36
+
+
+===== PAGE 8 =====
+Preliminaries
+Bi-level reformulation
+First, we reformulate the chance constraint using the notion of (1−δ)-quantile.
+Definition (Quantile)
+LetYbe a scalar random variable,F Y (t) its Cumulative Distribution Function and
+δ∈[0,1] our level.Y’s (1−δ)-quantile [Hab96] denotedQ 1−δ(Y) is defined as:
+Q1−δ(Y) = inf{t∈R:F Y (t)≥1−δ}.(2)
+Intuitively, it can be interpreted as the inverse of the CDF 1 of a random variable, i.e.
+F −1
+Y (1−δ).
+1CDF stands for Cumulative Distribution Function, which describes the probability that a random variable takes a value less than or equal to a
+given point.
+Ashkan Majidi Chance Constraint Optimization Summer 2025 5 / 36
+
+
+===== PAGE 9 =====
+Preliminaries
+Quantile reformulation
+We can rewrite our previously defined chance constraint using quantiles [LMA21]:
+P{g(x,Z)≤0} ≥1−δ⇐ ⇒Q 1−δ(g(x,Z))≤0.(3)
+Intuitively, this means that the left 1−δproportion of the mass ofg(x,Z)’s density
+should lie below 0. Using this equivalence, it follows that our main (Problem 1) can be
+rewritten asBi-level problem:
+
+
+
+min
+x∈X
+f(x)
+s.t.P{g(x,Z)≤0} ≥1−δ
+← →
+
+
+
+min
+x∈X
+f(x)
+s.t.s≤0
+s=Q 1−δ(g(x,Z))
+.(4)
+Challenge
+s=Q 1−δ(g(x,Z)) is a non-convex, non-smooth constraint.
+Ashkan Majidi Chance Constraint Optimization Summer 2025 6 / 36
+
+
+===== PAGE 10 =====
+Preliminaries
+Superquantile definition
+Definition (Superquantile a.k.a. CVaR)
+LetYbe a random variable,δ∈[0,1] our level andQ 1−δ(Y) our quantile at the level
+1−δ.Y’s (1−δ)-superquantile, denotedSQ 1−δ(Y) is defined as:
+SQ1−δ(Y) =E{Y|Y≥Q 1−δ(Y)}(5)
+which can be equivalently defined as (from [ROC70])
+SQ1−δ(Y) = 1
+δ
+Z 1
+1−δ
+Qp(Y)dp.(6)
+Ashkan Majidi Chance Constraint Optimization Summer 2025 7 / 36
+
+
+===== PAGE 11 =====
+Preliminaries
+Superquantile definition
+Figure: Superquantile can be intuitively viewed as the expected value of all outcomes greater
+than a certain level.
+Ashkan Majidi Chance Constraint Optimization Summer 2025 8 / 36
+
+
+===== PAGE 12 =====
+Preliminaries
+Variational formulation for Superquantile
+Definition
+Using (6), one can introduce the following function, involving the auxiliary variables.
+Gδ(s) :=s+ 1
+δ E[max{Y−s,0}]
+FunctionGis convex and continuously differentiable w.r.t s [ROC70].
+Ashkan Majidi Chance Constraint Optimization Summer 2025 9 / 36
+
+
+===== PAGE 13 =====
+Preliminaries
+Variational formulation for Superquantile
+Lemma
+For a given random variableYand a levelδ, superquantile can be determined by
+following formula [ROC70].
+SQ1−δ(Y) = min
+s∈R
+Gδ(s).(7)
+Moreover, the left endpoint of the solution set of (7) isQ 1−δ(Y).
+Ashkan Majidi Chance Constraint Optimization Summer 2025 10 / 36
+
+
+===== PAGE 14 =====
+Preliminaries
+Bi-level reformulation
+Definition
+Gδ(x,s) :=s+ 1
+δ EZ [max{g(x,Z)−s,0}]
+CCO problem can be rewritten as follows:
+
+
+
+min
+x∈X
+f(x)
+s.t.s≤0
+s=Q 1−δ(g(x,Z))
+← →
+
+
+
+min
+x∈X
+f(x)
+s.t.s≤0
+s∈S(x) = arg min
+s∈R
+Gδ(x,s)
+.(8)
+Ashkan Majidi Chance Constraint Optimization Summer 2025 11 / 36
+
+
+===== PAGE 15 =====
+Preliminaries
+Bi-level reformulation
+Lemma
+IfP Z ≪Leb, i.e.,P Z is absolutely continuous andg(x,·) is a continuous function for
+everyx∈ X, then
+S(x) = arg min
+s∈R
+s+ 1
+δ E[max{g(x,Z)−s,0},
+is a singleton.
+We will denotes ∗(x), leading to the following reformulation of the CCO:
+min
+x∈X
+f(x) s.t.s ∗(x)≤0.(9)
+Ashkan Majidi Chance Constraint Optimization Summer 2025 12 / 36
+
+
+===== PAGE 16 =====
+Algorithm
+Ashkan Majidi Chance Constraint Optimization Summer 2025
+Algorithm
+
+
+===== PAGE 17 =====
+Algorithm
+Augmented Lagrangian method
+Write (9) by its mini-max reformulation:
+min
+x∈X
+max
+λ≥0
+f(x) +λs ∗(x).(10)
+However, maxλ≥0 f(x) +λs ∗(x) isnon-smoothw.r.t.x.
+To address this, we use the augmented Lagrangian:
+min
+x∈X
+max
+λ≥0
+P(x, λ) = min
+x∈X
+max
+λ≥0
+h
+f(x) +λs ∗(x)− µ
+2 λ2
+i
+.(11)
+Here, the addedµ-regularization term− µ
+2 λ2 serves to soften the effect of the
+λ-penalized constraintλs ∗(x).
+Ashkan Majidi Chance Constraint Optimization Summer 2025 13 / 36
+
+
+===== PAGE 18 =====
+Algorithm
+Augmented Lagrangian method
+By solving maximization overλ, we relax (Problem 9) as the simpler:
+min
+x∈X
+F(x) = min
+x∈X
+f(x) + s ∗(x)
+2
+ s ∗(x)
+µ
+
++
+(12)
+withF(x) being ourobjective function,s ∗(x) denoting arg min s∈R Gδ(x,s), [·] + the
+max(·,0) or ReLU(·) function.
+Ashkan Majidi Chance Constraint Optimization Summer 2025 14 / 36
+
+
+===== PAGE 19 =====
+Algorithm
+s ∗(x)is not differentiable!
+Theorem (Danskin)
+LetX⊆R n be open andS⊆R m be a convex, compact set. Consider a function
+F:X×S→Rsuch that:
+1F(x,s)isC 1 inx,
+2F(x,s)isC 2 ins,
+3For eachx∈X, the problemmin s∈S F(x,s)has auniqueminimizers ∗(x),
+4∇ 2
+s F(x,s)is positive definite ats=s ∗(x).
+Then the solution mapx7→s ∗(x)is continuously differentiable (C 1).
+Gδ(x,s) =s+δ −1E[max{g(x,Z)−s,0}] isC 1 function but not necessarily aC 2
+one!
+We therefore approximateG δ(x,s) with aC 2, strongly convex surrogate
+ˆGδ,θ,ϵ(x,s).
+Ashkan Majidi Chance Constraint Optimization Summer 2025 15 / 36
+
+
+===== PAGE 20 =====
+Algorithm
+Approximation forG δ
+In order to makeG δ(x,·)twice differentiable, we
+approximate max{x,0}with aC 2 functionh θ(x) in the
+definition ofG δ(x,s).
+hθ(x) =
+
+
+
+− x4
+16θ3 + 3x2
+8θ + x
+2 + 3θ
+16 ifx∈[−θ, θ]
+max{x,0}otherwise
+(13)
+Figure:h θ graph withθ= 0.1.
+Ashkan Majidi Chance Constraint Optimization Summer 2025 16 / 36
+
+
+===== PAGE 21 =====
+Algorithm
+Approximation forG δ
+Add a square term instoG δ(x,s):
+ˆGδ,θ,ϵ(x,s) :=s+ 1
+δ EZ [hθ(g(x,Z)−s)]+ ϵ
+2 s2.(14)
+By Danskin theorem, ˆs∗
+θ,ϵ(x) := arg min s ˆGδ,θ,ϵ(x,s) isC 1.
+Ashkan Majidi Chance Constraint Optimization Summer 2025 17 / 36
+
+
+===== PAGE 22 =====
+Algorithm
+Minimization of ˆF
+We express and compute
+We relaxF(x) :=f(x) + s ∗(x)
+2
+h
+s ∗(x)
+µ
+i
++
+to the following differentiable objective:
+ˆF(x) :=f(x) +
+ˆs∗
+θ,ϵ(x)
+2
+"
+ˆs∗
+θ,ϵ(x)
+µ
+#
++
+.
+To minimize ˆF, we will first use thegradient descent algorithm.
+Need to compute the partial derivatives ∂
+∂x
+ˆF(x) and ∂
+∂x ˆs∗
+θ,ϵ(x).
+∇ ˆF(x) =∇ x f(x) +∇ x ˆs∗
+θ,ϵ(x)
+h ˆs∗
+θ,ϵ(x)
+µ
+i
++
+∇x ˆs∗
+θ,ϵ(x) =−∂ 2
+xs ˆGδ,θ,ϵ(x,s)| s=ˆs∗
+θ,ϵ(x)
+h
+∂2
+s ˆGδ,θ,ϵ(x,s)| s=ˆs∗
+θ,ϵ(x)
+i−1
+Ashkan Majidi Chance Constraint Optimization Summer 2025 18 / 36
+
+
+===== PAGE 23 =====
+Algorithm
+Gradiant computation
+∂Gδ,θ,ϵ(x,s ∗
+θ,ϵ(x))
+∂s = 0 =⇒ d
+dx
+"
+∂Gδ,θ,ϵ(x,s ∗
+θ,ϵ(x))
+∂s
+#
+= 0
+⇐ ⇒ ∂2
+∂x∂s Gδ,θ,ϵ(x,s ∗
+θ,ϵ(x)) + ∂
+∂x s ∗
+θ,ϵ(x) ∂2
+∂s 2
+θ,ϵ
+Gδ,θ,ϵ(x,s ∗
+θ,ϵ(x)) = 0
+⇐ ⇒ ∂
+∂x s ∗
+θ,ϵ(x) =− ∂2
+∂x∂s Gδ,θ,ϵ(x,s ∗
+θ,ϵ(x))
+"
+∂2
+∂s 2
+θ,ϵ
+Gδ,θ,ϵ(x,s ∗
+θ,ϵ(x))
+#−1
+.
+(15)
+Ashkan Majidi Chance Constraint Optimization Summer 2025 19 / 36
+
+
+===== PAGE 24 =====
+Algorithm
+Plug-in estimator of ˆGδ,θ,ϵ(x,s)
+Access toP Z through the samples{z j }M
+j=1. ˆGδ,θ,ϵ(x,s) needs to be estimated.
+Plug-in estimator of ˆGδ,θ,ϵ(x,s):
+ˆGδ,θ,ϵ(xk ,ˆsk;{z j }M
+j=1) :=s+ 1
+δM
+MX
+j=1
+hθ(g(x,z j)−s) +ϵ· s2
+2 (16)
+Then
+ˆ∇s ∗
+θ,ϵ(x,s) =∂ 2
+xs ˆGδ,θ,ϵ(x,s;{z j }M
+j=1)
+h
+∂2
+s ˆGδ,θ,ϵ(x,s;{z j }M
+j=1)
+i−1
+,
+∇x ˆF(x,s) :=∇ x f(x)− ˆ∇s ∗
+θ,ϵ(x,s)
+" ˆ∇s ∗
+θ,ϵ(x,s)
+µ
+#
++
+.
+Ashkan Majidi Chance Constraint Optimization Summer 2025 20 / 36
+
+
+===== PAGE 25 =====
+Algorithm
+AlgorithmHyper-gradient Augmented method
+Require:ϵ,θ, learning ratesη, γ >0, number of iterationsN,N ′.
+1:Sample a batch ofMpoints{z j }M
+j=1 from the distributionP Z .
+2:Initializex 0,s 0
+3:fork= 0,1, . . . ,N ′ −1do
+4:Initialize ˆs k =s k
+5:fork ′ = 0,1,· · ·,N−1do
+6:ˆs k+1 ←ˆsk ′ −γ k ′∇s ˆGδ,θ,ϵ(xk ,ˆsk ′;{z j }M
+j=1)
+7:end for
+8:s k+1 = ˆsN
+9:ˆx k+1 ←ˆxk −η k ∇x ˆF(x k ,s k+1)
+10:end for
+11:returnˆx ′
+N
+Ashkan Majidi Chance Constraint Optimization Summer 2025 21 / 36
+
+
+===== PAGE 26 =====
+Experiments
+Ashkan Majidi Chance Constraint Optimization Summer 2025
+Experiments
+
+
+===== PAGE 27 =====
+Experiments
+Example 1: Definition
+First Example is from Conformal Predictive Programming paper [Zha+24], a simple
+uni-variate problem.
+f(x) =x 3ex
+g(x,z) = 50ze x −5
+Z∼Exp( 1
+3)
+(17)
+with safety probability level 1−δ= 0.90 and 500 samples.
+Ashkan Majidi Chance Constraint Optimization Summer 2025 22 / 36
+
+
+===== PAGE 28 =====
+Experiments
+Example 1: Learning curve
+Smooth trajectory
+Fast convergence
+Low variance
+Figure: Objective and Empirical coverage plot over 100 runs.
+Ashkan Majidi Chance Constraint Optimization Summer 2025 23 / 36
+
+
+===== PAGE 29 =====
+Experiments
+Example 1: Comparison
+Algorithm Objective Mean Objective Std EC Mean Run Times Mean
+Ours-1.3386 0.0028 0.9032 2.8345
+CPP-MIP -1.3398 0.0034 0.8986 0.5917
+CPP-KKT -1.3396 0.0038 0.8982 35.3135
+Table: Algorithm performance over 100 runs
+Ashkan Majidi Chance Constraint Optimization Summer 2025 24 / 36
+
+
+===== PAGE 30 =====
+Experiments
+Example 2: Definition
+Example for demonstrating the performance of algorithms in the high-dimensional case.
+f(x) =||x−2×1|| 2
+g(x,z) =Z T x−1
+Z∼ N(0,I d×d )
+(18)
+with safety probability level 1−δ= 0.95, 100 samples and dimension equal to 10.
+Ashkan Majidi Chance Constraint Optimization Summer 2025 25 / 36
+
+
+===== PAGE 31 =====
+Experiments
+Example 2: Learning Curve
+Figure: Objective and Empirical coverage plot over 30 runs.
+Ashkan Majidi Chance Constraint Optimization Summer 2025 26 / 36
+
+
+===== PAGE 32 =====
+Experiments
+Example 2: Comparison
+Algorithm Objective Mean Objective Std EC Mean Run Times Mean
+Ours31.8462 0.96066 0.9281 3.6852
+CPP-MIP 29.8731 1.1626 0.8375 4.6654
+CPP-KKT 29.9085 0.9959 0.8457 154.6919
+TACO 36.9806 0.8045 0.9977 3.5867
+Table: Algorithm performance over 20 runs
+results showing vulnerability of Conformal Prediction algorithms against dimension
+and sample number.
+Ashkan Majidi Chance Constraint Optimization Summer 2025 27 / 36
+
+
+===== PAGE 33 =====
+Experiments
+Example 3: Definition
+30 dimentional version of the second example:
+f(x) =||x−2×1|| 2
+g(x,z) =Z T x−1
+Z∼ N(0,I d×d )
+(19)
+with safety probability level 1−δ= 0.95 and 100 samples.
+Ashkan Majidi Chance Constraint Optimization Summer 2025 28 / 36
+
+
+===== PAGE 34 =====
+Experiments
+Example 3: Learning Curve
+Figure: Objective and Empirical coverage plot over 30 runs.
+Ashkan Majidi Chance Constraint Optimization Summer 2025 29 / 36
+
+
+===== PAGE 35 =====
+Experiments
+Example 3: Comparison
+Algorithm Objective Mean Objective Std EC Mean Run Times Mean
+Ours105.2801 2.0875 0.9249 7.0542
+CPP-MIP 87.9880 7.1422 0.6753 82.1295
+Table: Algorithm performance over 30 runs
+Ashkan Majidi Chance Constraint Optimization Summer 2025 30 / 36
+
+
+===== PAGE 36 =====
+Experiments
+Example 4: Definition
+250 sample version of the second example:
+f(x) =||x−2×1|| 2
+g(x,z) =Z T x−1
+Z∼ N(0,I d×d )
+(20)
+with safety probability level 1−δ= 0.95 and dimension equal to 10.
+Ashkan Majidi Chance Constraint Optimization Summer 2025 31 / 36
+
+
+===== PAGE 37 =====
+Experiments
+Example 4: Learning Curve
+Figure: Objective and Empirical coverage plot over 30 runs.
+Ashkan Majidi Chance Constraint Optimization Summer 2025 32 / 36
+
+
+===== PAGE 38 =====
+Experiments
+Example 4: Comparison
+Algorithm Objective Mean Objective Std EC Mean Run Times Mean
+Ours31.9731 0.7483 0.9318 4.0398
+CPP-MIP 31.1557 0.5767 0.8918 216.2729
+Table: Algorithm performance over 30 runs
+Ashkan Majidi Chance Constraint Optimization Summer 2025 33 / 36
+
+
+===== PAGE 39 =====
+Future Works
+Ashkan Majidi Chance Constraint Optimization Summer 2025
+Future Works
+
+
+===== PAGE 40 =====
+Future Works
+Robust image classification under random corruptions
+Critical Issue
+Deep learning models achieve exceptional performance on clean benchmark datasets,
+but frequently fail in real-world applications where input quality is compromised.
+Why This Matters
+Real-world images are rarely perfect
+Environmental factors introduce unavoidable corruptions
+Safety-critical applications demand reliability
+Real-World Scenarios
+Autonomous driving (rain, fog)•Medical imaging (noise, artifacts)
+Surveillance (motion blur, compression)•Mobile photography (low light, shake)
+Ashkan Majidi Chance Constraint Optimization Summer 2025 34 / 36
+
+
+===== PAGE 41 =====
+Future Works
+CCO framework
+Corrupted training set
+Clean test set
+fθ(x) = [p 1,· · ·,p k]
+pi probability of belongingxto classi
+C(x) = max i fθ(x) i
+mθ(x) =f θ(x) C(x) −max i̸=C(x) fθ(x) i
+min
+x∈X
+CrossEntropyLoss(fθ(x),y)
+s.t.P(m θ(x)≥c)≥1−δ
+(21)
+Ashkan Majidi Chance Constraint Optimization Summer 2025 35 / 36
+
+
+===== PAGE 42 =====
+Future Works
+Ashkan Majidi Chance Constraint Optimization Summer 2025
+Thank You!
+
+
+===== PAGE 43 =====
+Bibliography
+References
+[Hab96] Shelby J. Haberman. “Quantiles”. In:Advanced Statistics: Description of Populations. New York, NY: Springer New York,
+1996, pp. 367–404.isbn: 978-1-4757-4417-0.doi:10.1007/978-1-4757-4417-0_7.url:
+https://doi.org/10.1007/978-1-4757-4417-0_7.
+[KHVR20] Willem K. Klein Haneveld, Maarten H. van der Vlerk, and Ward Romeijnders. “Chance Constraints”. In:Stochastic
+Programming: Modeling Decision Problems Under Uncertainty. Cham: Springer International Publishing, 2020, pp. 115–138.
+isbn: 978-3-030-29219-5.doi:10.1007/978-3-030-29219-5_5.url:https://doi.org/10.1007/978-3-030-29219-5_5.
+[LMA21] Yassine Laguel, J´ erˆ ome Malick, and Wim Ackooij.Chance constrained problems: a bilevel convex optimization perspective.
+2021. arXiv:2103.10832 [math.OC].url:https://arxiv.org/abs/2103.10832.
+[ROC70] R. TYRRELL ROCKAFELLAR. “Convex Functions”. In:Convex Analysis. Princeton University Press, 1970, pp. 23–31.isbn:
+9780691015866.url:http://www.jstor.org/stable/j.ctt14bs1ff.8(visited on 04/12/2025).
+[Zha+24] Yiqi Zhao et al.Conformal Predictive Programming for Chance Constrained Optimization. 2024. arXiv:2402.07407 [eess.SY].
+url:https://arxiv.org/abs/2402.07407.
+Ashkan Majidi Chance Constraint Optimization Summer 2025 36 / 36
