@@ -1,0 +1,90 @@
+benchmark:
+  run_name: synthetic_baselines
+
+  # Empirical coverage estimation uses this many samples per run.
+  # (Should be the same across methods for fair comparison.)
+  eval_samples: 100000
+
+  # Time limit in seconds for SCIP (CPP-* baselines).
+  cpp_time_limit_s: 600
+
+  methods:
+    - Core
+    - TACO
+    - CPP-MIP
+    - CPP-KKT
+    - SA
+    - SAA
+
+  cases:
+    - id: example1_cpp_problem_m500_delta0p10
+      problem:
+        kind: cpp_problem
+        samples_num: 500
+        delta: 0.10
+        initial_x: -4.0
+        max_iter_s: 400
+        max_iter_x: 300
+        theta: 0.09
+        epsilon: 0.01
+        lr: 0.007
+        mu: 0.005
+        abstol: 1.0e-5
+      seeds:
+        start: 0
+        count: 100
+
+    - id: gaussian_linear_d10_m100_delta0p05
+      problem:
+        kind: high_dimension
+        dim: 10
+        samples_num: 100
+        delta: 0.05
+        initial_x: zeros
+        max_iter_s: 400
+        max_iter_x: 500
+        theta: 0.1
+        epsilon: 0.001
+        lr: 0.01
+        mu: 0.01
+        abstol: 1.0e-5
+      seeds:
+        start: 0
+        count: 30
+
+    - id: gaussian_linear_d30_m100_delta0p05
+      problem:
+        kind: high_dimension
+        dim: 30
+        samples_num: 100
+        delta: 0.05
+        initial_x: zeros
+        max_iter_s: 400
+        max_iter_x: 500
+        theta: 0.1
+        epsilon: 0.001
+        lr: 0.008
+        mu: 0.01
+        abstol: 1.0e-5
+      seeds:
+        start: 0
+        count: 30
+
+    - id: gaussian_linear_d10_m250_delta0p05
+      problem:
+        kind: high_dimension
+        dim: 10
+        samples_num: 250
+        delta: 0.05
+        initial_x: zeros
+        max_iter_s: 400
+        max_iter_x: 500
+        theta: 0.1
+        epsilon: 0.001
+        lr: 0.01
+        mu: 0.01
+        abstol: 1.0e-5
+      seeds:
+        start: 0
+        count: 30
+

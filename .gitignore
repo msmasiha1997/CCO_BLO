@@ -1,4 +1,6 @@
 runs/
+output/
+code/cco/cpp/case_studies_results/
 **/__pycache__/
 **/*.pt
 **/*.ckpt

@@ -29,6 +29,20 @@ python scripts/sweep_synthetic.py --config configs/sweep_scaling_gaussian_linear
 
 Each sweep writes `rows.csv` and `summary.csv` under `runs/<run_name>/`.
 
+## Baseline benchmark (synthetic)
+
+Install baseline deps:
+
+```bash
+pip install -r requirements-baselines.txt
+```
+
+Run the multi-method benchmark (Core/TACO/CPP-*):
+
+```bash
+python scripts/benchmark_synthetic_baselines.py --config configs/benchmark_synthetic_baselines.yaml
+```
+
 ## Server workflow
 
 1. Push changes from your laptop.

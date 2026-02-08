@@ -1,0 +1,26 @@
+benchmark:
+  run_name: synthetic_baselines_smoke
+  eval_samples: 5000
+  cpp_time_limit_s: 10
+  methods:
+    - Core
+    - TACO
+  cases:
+    - id: smoke_gaussian_linear_d10_m100
+      problem:
+        kind: high_dimension
+        dim: 10
+        samples_num: 100
+        delta: 0.05
+        initial_x: zeros
+        max_iter_s: 50
+        max_iter_x: 50
+        theta: 0.1
+        epsilon: 0.001
+        lr: 0.01
+        mu: 0.01
+        abstol: 1.0e-5
+      seeds:
+        start: 0
+        count: 2
+
