@@ -1,0 +1,17 @@
+run_name: synth_gaussian_d10_m100
+solver:
+  example_name: gaussian_linear
+  dim: 10
+  seed: 0
+  delta: 0.05
+  mu: 1.0
+  theta: 0.1
+  eps: 0.01
+  M: 100
+  outer_steps: 400
+  inner_steps: 50
+  eta: 0.05
+  gamma: 0.1
+  x0: null
+  resample_z_each_outer: false
+  eval_samples: 20000

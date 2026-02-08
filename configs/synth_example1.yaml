@@ -1,0 +1,19 @@
+run_name: synth_example1
+solver:
+  example_name: example1
+  dim: 1
+  seed: 0
+  delta: 0.10
+  mu: 10.0
+  theta: 0.1
+  eps: 0.01
+  M: 500
+  outer_steps: 400
+  inner_steps: 50
+  eta: 0.2
+  gamma: 0.1
+  x0: [-5.0]
+  x_min: [-10.0]
+  x_max: [5.0]
+  resample_z_each_outer: false
+  eval_samples: 20000
