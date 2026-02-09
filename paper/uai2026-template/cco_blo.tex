@@ -1,0 +1,272 @@
+\documentclass{uai2026} % for initial submission
+%\documentclass[accepted]{uai2026}
+
+\usepackage[american]{babel}
+\usepackage{natbib}
+  \bibliographystyle{plainnat}
+  \renewcommand{\bibsection}{\subsubsection*{References}}
+\usepackage{mathtools}
+\usepackage{amssymb}
+\usepackage{amsthm}
+\usepackage{booktabs}
+\usepackage{xcolor}
+\usepackage{hyperref}
+
+% Optional: use existing macro collections from the template repo.
+\input{math_commands}
+\input{defns}
+
+% === Draft controls ===
+\newif\ifdraft
+\drafttrue % set to \draftfalse before submission
+
+\newcommand{\todo}[1]{\textcolor{red}{[TODO: #1]}}
+\newcommand{\plan}[1]{%
+  \ifdraft
+    \paragraph{Draft plan.}#1
+  \fi
+}
+
+% === Theorem environments (minimal) ===
+\theoremstyle{plain}
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}{Lemma}
+\newtheorem{proposition}{Proposition}
+\theoremstyle{definition}
+\newtheorem{definition}{Definition}
+
+% === Notation shortcuts ===
+\newcommand{\ReLU}{\operatorname{ReLU}}
+\newcommand{\CVaR}{\operatorname{CVaR}}
+\newcommand{\VaR}{\operatorname{VaR}}
+\newcommand{\SQ}{\operatorname{SQ}}
+\newcommand{\Q}{\operatorname{Q}}
+
+\title{Chance-Constrained Optimization via Bilevel Quantile Reformulation and Hypergradients}
+
+% Anonymous for now; fill for camera-ready.
+% \author[1]{...}
+% \affil[1]{...}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+Modern AI systems must optimize performance while controlling the probability of rare but consequential failures induced by stochasticity (noise, corruptions, distribution shift, or uncertain dynamics). Chance-constrained optimization provides a direct formalism for this goal, but is computationally challenging due to non-smooth quantile constraints and poor scaling with dimension and sample size.
+We present a bilevel approach that reduces the chance constraint to a scalar inner problem via a superquantile variational characterization, then differentiates through the inner argmin using hypergradients. We combine a smooth strongly-convex surrogate for the inner objective with an augmented-Lagrangian-style penalty to obtain an end-to-end differentiable outer objective suitable for large-scale gradient methods.
+We provide conditions under which the solution map is differentiable, derive an efficient gradient formula, and discuss approximation and optimization trade-offs. Experiments on standard synthetic benchmarks compare our method to TACO and conformal prediction based baselines and evaluate objective quality, reliability (empirical coverage), and runtime, including an additional coverage F-score metric.
+\end{abstract}
+
+\section{Introduction}\label{sec:intro}
+\plan{
+\begin{itemize}
+  \item Motivate reliability in modern AI: robotics, perception under corruptions, safe decision-making.
+  \item State the core problem: optimize utility subject to failure probability $\le \delta$.
+  \item Explain why this is hard: quantiles, non-smoothness, sample-based combinatorics, scaling with $d$ and $M$.
+  \item High-level idea: quantile $\rightarrow$ scalar bilevel $\rightarrow$ implicit differentiation $\rightarrow$ SGD-friendly objective.
+  \item Contributions list (bullets) and preview experiments.
+\end{itemize}
+}
+
+We study chance-constrained optimization (CCO), a framework for optimizing an objective while ensuring that constraint violations occur with probability at most $\delta$.
+Such constraints naturally arise in modern AI systems that operate under uncertainty: a perception model must remain confident under random corruptions; a robot must avoid collisions under noisy sensing; and a policy must satisfy safety constraints under stochastic dynamics.
+
+The main obstacle is that chance constraints are governed by quantiles of random variables, leading to non-smooth, typically non-convex feasible sets and optimization objectives that are difficult to differentiate and scale.
+Sample-based encodings (e.g., mixed-integer formulations) and conformal-prediction-based methods can be effective on small problems but may struggle as the decision dimension or sample size grows.
+
+\paragraph{Contributions.}
+\begin{itemize}
+  \item We formulate CCO as a bilevel problem using a quantile characterization and a superquantile (CVaR) variational representation.
+  \item We introduce a smooth, strongly convex surrogate that yields a differentiable solution map and enables hypergradient computation.
+  \item We combine this with an augmented-Lagrangian-style penalty to obtain a differentiable outer objective and a practical stochastic optimization algorithm.
+  \item We benchmark against TACO and conformal prediction based solvers on synthetic problems and report objective value, empirical coverage, runtime, and a coverage F-score.
+\end{itemize}
+
+\section{Problem Setup}\label{sec:setup}
+\plan{
+\begin{itemize}
+  \item Define CCO and assumptions (convexity in $x$ when needed; $Z$ distribution access via sampling).
+  \item Clarify what ``coverage'' means in experiments (empirical estimate on fresh samples).
+  \item Include multi-constraint extension as a remark (scalar inner variable per constraint).
+\end{itemize}
+}
+
+Let $\Xc\subseteq \mathbb{R}^d$ be a closed convex set, $Z\sim P_Z$ a random vector, $f:\mathbb{R}^d\to\mathbb{R}$ an objective, and $g:\mathbb{R}^d\times\mathbb{R}^m\to\mathbb{R}$ a constraint function.
+We consider
+\begin{align}
+  \min_{x\in \Xc}\; & f(x)\label{eq:cco}\\
+  \text{s.t.}\; & \mathbb{P}\big(g(x,Z)\le 0\big)\ge 1-\delta,\nonumber
+\end{align}
+where $\delta\in(0,1)$ is the allowed violation probability.
+We assume access to i.i.d.\ samples from $P_Z$.
+
+\section{Background: Quantiles and Superquantiles}\label{sec:background}
+\plan{
+\begin{itemize}
+  \item Quantile reformulation of chance constraints.
+  \item Superquantile/CVaR variational form and why it gives a scalar inner optimization.
+  \item Connect to the deck: $G_\delta(x,s) = s + \delta^{-1}\mathbb{E}[\max(g(x,Z)-s,0)]$.
+\end{itemize}
+}
+
+\begin{definition}[Quantile]
+For a scalar random variable $Y$ with CDF $F_Y$, its $(1-\delta)$-quantile is
+$\Q_{1-\delta}(Y)=\inf\{t\in\mathbb{R}: F_Y(t)\ge 1-\delta\}$.
+\end{definition}
+
+The chance constraint is equivalent to the quantile constraint
+\begin{equation}
+  \mathbb{P}\big(g(x,Z)\le 0\big)\ge 1-\delta
+  \quad\Longleftrightarrow\quad
+  \Q_{1-\delta}\big(g(x,Z)\big)\le 0.\label{eq:quantile}
+\end{equation}
+
+\begin{definition}[Superquantile / CVaR]
+The $(1-\delta)$-superquantile (a.k.a.\ $\CVaR_{1-\delta}$) of $Y$ is
+$\SQ_{1-\delta}(Y) = \mathbb{E}\!\left[Y\mid Y\ge \Q_{1-\delta}(Y)\right]$.
+\end{definition}
+
+\citet{rockafellaruryasev2000cvar} show the variational representation
+\begin{equation}
+  \SQ_{1-\delta}(Y)=\min_{s\in\mathbb{R}} \left\{ s + \frac{1}{\delta}\mathbb{E}\big[(Y-s)_+\big] \right\}.\label{eq:cvar-var}
+\end{equation}
+Applying \eqref{eq:cvar-var} with $Y=g(x,Z)$ yields a scalar inner problem over $s$.
+Under mild conditions, the minimizer is unique and recovers the quantile boundary; this underpins the bilevel view of CCO \citep{laguelmalickackooij2021bilevel}.
+
+\section{Method: Bilevel Augmented Hypergradient Optimization}\label{sec:method}
+\plan{
+\begin{itemize}
+  \item Define inner objective $G_\delta(x,s)$ and its smoothed strongly-convex surrogate $\widehat G$.
+  \item Define $s^*(x)=\arg\min_s \widehat G(x,s)$ and the outer penalized objective $\widehat F_\mu(x)$.
+  \item Derive hypergradient $\nabla_x s^*(x)$ via implicit differentiation; emphasize scalar $s$.
+  \item Provide algorithm box (outer loop over $x$, inner solve for $s^*$, then gradient step).
+  \item Implementation details: plug-in estimator with minibatches; penalty schedule $\mu_k$; stopping criteria.
+\end{itemize}
+}
+
+\subsection{Bilevel reformulation}
+Define
+\begin{equation}
+  G_\delta(x,s) \;=\; s + \frac{1}{\delta}\,\mathbb{E}_Z\!\left[(g(x,Z)-s)_+\right].\label{eq:G}
+\end{equation}
+Let $s^\star(x)\in\arg\min_s G_\delta(x,s)$.
+The chance constraint \eqref{eq:quantile} motivates enforcing $s^\star(x)\le 0$.
+
+\subsection{Smooth strongly-convex surrogate}
+The hinge $(u)_+=\max\{u,0\}$ is non-smooth.
+We replace it with a $C^2$ smoothing $h_\theta(u)$ (matching $\max\{u,0\}$ outside $[-\theta,\theta]$) and add $\frac{\varepsilon}{2}s^2$ for strong convexity:
+\begin{equation}
+  \widehat G_{\delta,\theta,\varepsilon}(x,s)
+  \;=\;
+  s + \frac{1}{\delta}\,\mathbb{E}_Z\!\left[h_\theta\!\left(g(x,Z)-s\right)\right]
+  + \frac{\varepsilon}{2}s^2.\label{eq:Ghat}
+\end{equation}
+Let $\widehat s^\star(x)=\arg\min_s \widehat G_{\delta,\theta,\varepsilon}(x,s)$, which is unique.
+
+\subsection{Augmented-Lagrangian-style penalty}
+We enforce $\widehat s^\star(x)\le 0$ through a penalty induced by maximizing over $\lambda\ge 0$ with quadratic regularization:
+\begin{equation}
+  \widehat F_{\mu}(x)
+  \;=\;
+  f(x) + \frac{([\widehat s^\star(x)]_+)^2}{2\mu}.\label{eq:Fhat}
+\end{equation}
+In practice, we can decrease $\mu$ over iterations to sharpen feasibility.
+
+\subsection{Hypergradient}
+Since $s$ is scalar, implicit differentiation yields
+\begin{equation}
+  \nabla_x \widehat s^\star(x)
+  \;=\;
+  - \frac{\partial^2_{xs}\widehat G_{\delta,\theta,\varepsilon}(x,s)}{\partial^2_{ss}\widehat G_{\delta,\theta,\varepsilon}(x,s)}
+  \bigg|_{s=\widehat s^\star(x)}.\label{eq:hypergrad}
+\end{equation}
+We use plug-in estimators of the expectations in \eqref{eq:Ghat} and compute $\nabla_x \widehat F_\mu(x)$ for a gradient-based outer update.
+
+\section{Theory (What We Will Prove)}\label{sec:theory}
+\plan{
+\begin{itemize}
+  \item State assumptions: $g$ differentiable in $x$, mild continuity in $z$, bounded moments; $\varepsilon>0$.
+  \item Prove inner uniqueness and differentiability of $\widehat s^\star(x)$ (implicit function theorem).
+  \item Provide bounds relating $\widehat s^\star$ to the original quantile and discuss $\theta,\varepsilon\to 0$.
+  \item Provide a convergence statement for stochastic optimization of $\widehat F_\mu$ (stationary point) under standard stepsizes.
+  \item Discuss extensions: multiple constraints (vector $s$), joint chance (risk allocation).
+\end{itemize}
+}
+
+This section will formalize conditions under which the hypergradient \eqref{eq:hypergrad} is valid and stable.
+We will also characterize the approximation error introduced by smoothing and strong convexification and provide optimization guarantees for the resulting stochastic bilevel procedure.
+
+\paragraph{Core proof skeleton.}
+\begin{itemize}
+  \item Show $\partial^2_{ss}\widehat G_{\delta,\theta,\varepsilon}(x,s)\ge \varepsilon>0$ for all $x,s$, implying unique $\widehat s^\star(x)$.
+  \item Apply the implicit function theorem to $\partial_s \widehat G_{\delta,\theta,\varepsilon}(x,\widehat s^\star(x))=0$ to obtain $C^1$ smoothness and \eqref{eq:hypergrad}.
+  \item Provide a bound of the form $|\widehat s^\star(x)-s^\star(x)|\le c_1\theta + c_2\varepsilon$ under regularity conditions (to be specified).
+\end{itemize}
+
+\section{Experiments}\label{sec:experiments}
+\plan{
+\begin{itemize}
+  \item Synthetic benchmarks aligned with the deck:
+    (i) CPP univariate exponential example; (ii) high-dimensional Gaussian linear constraint with varying $d$ and $M$.
+  \item Compare against baselines: TACO; CPP-MIP/CPP-KKT/SA/SAA.
+  \item Metrics: objective, empirical coverage, runtime; plus coverage F-score (closeness to target $1-\delta$).
+  \item Sweeps: dimension scaling ($d$), sample scaling ($M$), and sensitivity to $\delta$.
+  \item Report failure modes: CPP timeouts, instability, dimension/sample sensitivity.
+\end{itemize}
+}
+
+\subsection{Setup}
+We follow standard synthetic benchmarks used in prior work \citep{zhao2024conformal}.
+We report the objective value and empirical coverage (estimated on fresh samples) along with wall-clock time.
+To summarize reliability in a single scalar, we additionally report a coverage F-score:
+\begin{equation}
+  F_{\mathrm{EC}}(\mathrm{EC}, 1-\delta)
+  \;=\;
+  \frac{2\min\{\mathrm{EC}, 1-\delta\}}{\mathrm{EC} + (1-\delta)}\in[0,1],\label{eq:fscore}
+\end{equation}
+which equals $1$ if and only if the empirical coverage equals the target.
+
+\subsection{Baselines}
+We compare against (i) TACO \citep{laguelmalickackooij2021bilevel} and (ii) conformal predictive programming methods (MIP and KKT encodings, plus SA/SAA variants) \citep{zhao2024conformal}.
+
+\subsection{Results (placeholders)}
+\todo{Insert tables/figures from runs/ once sweeps finish on the server.}
+
+\begin{table}[!t]
+  \centering
+  \caption{Synthetic Benchmark Summary (placeholder).}\label{tab:main-results}
+  \begin{tabular}{lrrrr}
+    \toprule
+    Method & Obj.\ $\downarrow$ & EC $\uparrow$ & $F_{\mathrm{EC}}\uparrow$ & Time $\downarrow$\\
+    \midrule
+    Ours & -- & -- & -- & --\\
+    TACO & -- & -- & -- & --\\
+    CPP-MIP & -- & -- & -- & --\\
+    CPP-KKT & -- & -- & -- & --\\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\section{Discussion and Limitations}\label{sec:discussion}
+\plan{
+\begin{itemize}
+  \item When the method is attractive: high-dimensional $x$ with a small number of chance constraints.
+  \item Sensitivity knobs: $\theta,\varepsilon,\mu$ schedule; batch size $M$; inner solve accuracy.
+  \item Limitations: bias from smoothing; local minima in nonconvex $f$; joint chance constraints; heavy tails.
+  \item Practical guidance: penalty schedule; robust inner solve (bisection); reporting reliability metrics.
+\end{itemize}
+}
+
+\section{Conclusion}\label{sec:conclusion}
+\plan{
+\begin{itemize}
+  \item Restate core idea: scalar inner problem + hypergradients + penalty.
+  \item Summarize empirical takeaways.
+  \item Roadmap: modern AI experiment (robust classification under random corruptions), multi-constraint extension.
+\end{itemize}
+}
+
+\bibliography{references}
+
+\end{document}
+

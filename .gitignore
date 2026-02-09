@@ -28,6 +28,7 @@ paper/**/*.out
 paper/**/*.synctex.gz
 paper/**/.latexmkrc
 paper/**/supplement.pdf
+paper/**/cco_blo.pdf
 
 # OS/editor
 **/.DS_Store
