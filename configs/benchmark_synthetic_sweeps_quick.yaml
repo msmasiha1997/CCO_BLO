@@ -1,0 +1,62 @@
+benchmark:
+  # Quick sanity-scale version of benchmark_synthetic_sweeps.yaml
+  # Intended to finish in a few minutes on a single GPU node.
+  run_name: synthetic_sweeps_quick
+
+  # Empirical coverage estimation uses this many samples per run.
+  eval_samples: 5000
+
+  # Time limits (seconds) for solver-based baselines.
+  cpp_time_limit_s: 10
+  kktbl_time_limit_s: 10
+
+  methods:
+    - Core
+    - TACO
+    - CPP-MIP
+    - CPP-KKT
+    - SA
+    - SAA
+    - KKTBL
+
+  method_params:
+    SAA:
+      omega: null
+
+  cases:
+    - id: quick_hd_d10_m100_delta0p05
+      problem:
+        kind: high_dimension
+        dim: 10
+        samples_num: 100
+        delta: 0.05
+        initial_x: zeros
+        max_iter_s: 50
+        max_iter_x: 80
+        theta: 0.1
+        epsilon: 0.001
+        lr: 0.01
+        mu: 0.01
+        abstol: 1.0e-5
+      seeds:
+        start: 0
+        count: 2
+
+    - id: quick_hd_d30_m100_delta0p05
+      problem:
+        kind: high_dimension
+        dim: 30
+        samples_num: 100
+        delta: 0.05
+        initial_x: zeros
+        max_iter_s: 50
+        max_iter_x: 80
+        theta: 0.1
+        epsilon: 0.001
+        lr: 0.008
+        mu: 0.01
+        abstol: 1.0e-5
+      seeds:
+        start: 0
+        count: 2
+

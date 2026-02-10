@@ -86,11 +86,17 @@ class CPPProblem(Problem):
     def chance_function(
         self, x: float | np.ndarray, z: float | np.ndarray
     ) -> float | np.ndarray:
+        x = np.asarray(x, dtype=float)
+        if x.size == 1:
+            return 50 * z * np.exp(float(x.reshape(-1)[0])) - 5
         return 50 * z * np.exp(x) - 5
 
     def partial_chance_function(
         self, x: float | np.ndarray, z: float | np.ndarray
     ) -> float | np.ndarray:
+        x = np.asarray(x, dtype=float)
+        if x.size == 1:
+            return 50 * z * np.exp(float(x.reshape(-1)[0]))
         return 50 * z * np.exp(x)
 
     def z_samples(self, n: int = -1) -> np.ndarray:
@@ -100,7 +106,13 @@ class CPPProblem(Problem):
         return np.random.exponential(scale=3.0, size=(n,))
 
     def f_function(self, x: np.ndarray) -> float | np.ndarray:
-        return x ** 3 * np.exp(x)
+        x = np.asarray(x, dtype=float)
+        vals = x**3 * np.exp(x)
+        if x.ndim == 0:
+            return float(vals)
+        if x.ndim == 1:
+            return float(vals.sum())
+        return vals.sum(axis=-1)
 
     def partial_f_function(self, x: np.ndarray) -> float | np.ndarray:
         return x**2 * (x + 3) * np.exp(x)

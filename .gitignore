@@ -8,6 +8,7 @@ code/cco/cpp/case_studies_results/
 
 # Python
 .venv/
+.venv311/
 venv/
 *.egg-info/
 .pytest_cache/
@@ -32,3 +33,7 @@ paper/**/cco_blo.pdf
 
 # OS/editor
 **/.DS_Store
+
+# HPC logs
+slurm/
+slurm-*.out
