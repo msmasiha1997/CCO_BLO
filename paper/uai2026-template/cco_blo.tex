@@ -309,26 +309,175 @@ We may decrease $\mu$ over iterations to sharpen feasibility while keeping gradi
 For separate chance constraints $\mathbb{P}(g_i(x,Z)\le 0)\ge 1-\delta_i$, $i=1,\dots,r$, we introduce one scalar $s_i$ per constraint and apply the same construction to each inner objective $\widehat G_{\delta_i,i}(x,s_i)$.
 The inner step decomposes into $r$ independent one-dimensional solves, and the outer penalty can be taken as $\sum_{i=1}^r ([\widehat s_i^\star(x)]_+)^2/(2\mu_i)$ (or with a shared $\mu$).
 
-\section{Theory (What We Will Prove)}\label{sec:theory}
-\plan{
-\begin{itemize}
-  \item State assumptions: $g$ differentiable in $x$, mild continuity in $z$, bounded moments; $\varepsilon>0$.
-  \item Prove inner uniqueness and differentiability of $\widehat s^\star(x)$ (implicit function theorem).
-  \item Provide bounds relating $\widehat s^\star$ to the original quantile and discuss $\theta,\varepsilon\to 0$.
-  \item Provide a convergence statement for stochastic optimization of $\widehat F_\mu$ (stationary point) under standard stepsizes.
-  \item Discuss extensions: multiple constraints (vector $s$), joint chance (risk allocation).
-\end{itemize}
-}
+\section{Theory}\label{sec:theory}
+This section focuses on two theoretical questions:
+(i) how well the relaxed inner minimizer $\widehat s^\star(x)$ approximates the true quantile $s^\star(x)=\Q_{1-\delta}(g(x,Z))$ as $\theta,\varepsilon\to 0$; and
+(ii) how stochastic gradient methods behave when optimizing the smooth surrogate outer objective $\widehat F_\mu$.
 
-This section will formalize conditions under which the hypergradient \eqref{eq:hypergrad} is valid and stable.
-We will also characterize the approximation error introduced by smoothing and strong convexification and provide optimization guarantees for the resulting stochastic bilevel procedure.
+\subsection{Approximation of the quantile map}\label{sec:theory-approx}
+Fix $x\in\Xc$ and define the scalar random variable $Y:=g(x,Z)$, with quantile $q:=\Q_{1-\delta}(Y)$.
+Recall that the relaxed inner objective is
+\[
+  \widehat G_{\delta,\theta,\varepsilon}(x,s)
+  =
+  s + \frac{1}{\delta}\mathbb{E}\!\left[h_\theta(Y-s)\right] + \frac{\varepsilon}{2}s^2,
+\]
+and its unique minimizer is $\widehat s^\star(x)=\arg\min_s \widehat G_{\delta,\theta,\varepsilon}(x,s)$ (uniqueness follows from $\varepsilon$-strong convexity in $s$).
+We relate $\widehat s^\star(x)$ to the original quantile $q$.
 
-\paragraph{Core proof skeleton.}
-\begin{itemize}
-  \item Show $\partial^2_{ss}\widehat G_{\delta,\theta,\varepsilon}(x,s)\ge \varepsilon>0$ for all $x,s$, implying unique $\widehat s^\star(x)$.
-  \item Apply the implicit function theorem to $\partial_s \widehat G_{\delta,\theta,\varepsilon}(x,\widehat s^\star(x))=0$ to obtain $C^1$ smoothness and \eqref{eq:hypergrad}.
-  \item Provide a bound of the form $|\widehat s^\star(x)-s^\star(x)|\le c_1\theta + c_2\varepsilon$ under regularity conditions (to be specified).
-\end{itemize}
+\paragraph{Assumptions.}
+We assume that $Y$ has a continuous distribution and admits a density $f$ that is continuous at the quantile.
+Moreover, we assume a \emph{quantile regularity} condition: there exist constants $m>0$ and $r>0$ such that
+\begin{equation}
+  f(t)\ge m\qquad\text{for all }t\in[q-r,q+r].\label{eq:density-lower}
+\end{equation}
+This condition is standard in quantile sensitivity analysis: it rules out flat CDF regions at the target level and implies local Lipschitzness of the inverse CDF around $q$.
+
+\begin{lemma}[Derivative bounds for the hinge smoothing]\label{lem:h-deriv-bounds}
+The smoothing $h_\theta$ in \eqref{eq:htheta} satisfies $0\le h'_\theta(u)\le 1$ for all $u$ and $h''_\theta(u)=0$ for $|u|>\theta$.
+Moreover, for $|u|\le \theta/2$ we have $h''_\theta(u)\ge \frac{9}{16\theta}$.
+\end{lemma}
+\begin{proof}
+By construction $h_\theta$ coincides with $\max\{u,0\}$ outside $[-\theta,\theta]$, hence $h'_\theta\in\{0,1\}$ and $h''_\theta=0$ there.
+Inside $[-\theta,\theta]$, $h_\theta$ is a quartic polynomial whose first derivative interpolates between $0$ and $1$ and whose second derivative is
+$h''_\theta(u)=\frac{3}{4\theta}\left(1-\frac{u^2}{\theta^2}\right)$.
+For $|u|\le \theta/2$, $1-u^2/\theta^2\ge 3/4$, giving $h''_\theta(u)\ge 9/(16\theta)$.
+\end{proof}
+
+\begin{lemma}[Smoothing-only bias]\label{lem:smoothing-bias}
+Let $s_\theta$ be any solution to $\mathbb{E}[h'_\theta(Y-s_\theta)]=\delta$ (equivalently, any minimizer of $\widehat G_{\delta,\theta,0}(x,\cdot)$).
+Then the true quantile satisfies $q\in[s_\theta-\theta,s_\theta+\theta]$, hence $|s_\theta-q|\le \theta$.
+\end{lemma}
+\begin{proof}
+Since $0\le h'_\theta\le 1$ and $h'_\theta(u)=1$ for $u\ge \theta$ and $h'_\theta(u)=0$ for $u\le -\theta$, we have
+\[
+  \mathbf{1}\{Y\ge s+\theta\}\;\le\; h'_\theta(Y-s)\;\le\;\mathbf{1}\{Y\ge s-\theta\}
+  \qquad\text{a.s.}
+\]
+Taking expectations and setting $\mathbb{E}[h'_\theta(Y-s_\theta)]=\delta$ yields
+$\mathbb{P}(Y\ge s_\theta+\theta)\le \delta\le \mathbb{P}(Y\ge s_\theta-\theta)$, i.e.,
+$F(s_\theta-\theta)\le 1-\delta\le F(s_\theta+\theta)$.
+By definition of $q=\Q_{1-\delta}(Y)$, this implies $q\in[s_\theta-\theta,s_\theta+\theta]$.
+\end{proof}
+
+\begin{theorem}[Quantile approximation under $\theta$-smoothing and $\varepsilon$-regularization]\label{thm:quantile-approx}
+Let $q=\Q_{1-\delta}(Y)$ and assume \eqref{eq:density-lower} holds.
+Fix $\theta\le r/2$ and let $\widehat s^\star$ be the unique minimizer of $\widehat G_{\delta,\theta,\varepsilon}(x,\cdot)$ for some $\varepsilon>0$.
+Assume additionally that $|\widehat s^\star|\le B$ and that $\widehat s^\star\in[q-r/2,q+r/2]$.
+Then
+\begin{equation}
+  |\widehat s^\star - q|
+  \;\le\;
+  \theta + \frac{16\delta B}{9m}\,\varepsilon.\label{eq:shat-q-bound}
+\end{equation}
+In particular, if $\theta\to 0$ and $\varepsilon\to 0$ then $\widehat s^\star\to q$.
+\end{theorem}
+\begin{proof}
+Let $H_\theta(s):=\mathbb{E}[h'_\theta(Y-s)]$, which is continuous and nonincreasing in $s$.
+Let $s_\theta$ be any solution to $H_\theta(s_\theta)=\delta$; by Lemma~\ref{lem:smoothing-bias}, $|s_\theta-q|\le \theta$.
+
+The first-order optimality condition for $\widehat s^\star$ is
+\begin{equation}
+  0=\partial_s \widehat G_{\delta,\theta,\varepsilon}(x,\widehat s^\star)
+  = 1 - \frac{1}{\delta}H_\theta(\widehat s^\star) + \varepsilon \widehat s^\star,
+  \qquad\text{so}\qquad
+  H_\theta(\widehat s^\star)=\delta(1+\varepsilon \widehat s^\star).\label{eq:Htheta-root}
+\end{equation}
+Subtracting $H_\theta(s_\theta)=\delta$ from \eqref{eq:Htheta-root} gives
+$H_\theta(\widehat s^\star)-H_\theta(s_\theta)=\delta\varepsilon \widehat s^\star$.
+By the mean value theorem, there exists $\xi$ between $\widehat s^\star$ and $s_\theta$ such that
+\[
+  H_\theta(\widehat s^\star)-H_\theta(s_\theta)=H_\theta'(\xi)\,(\widehat s^\star-s_\theta),
+  \qquad
+  H_\theta'(\xi)=-\mathbb{E}\!\left[h''_\theta(Y-\xi)\right].
+\]
+Under the assumption that $\widehat s^\star\in[q-r/2,q+r/2]$ and $\theta\le r/2$, the interval $[\xi-\theta/2,\xi+\theta/2]$ lies inside $[q-r,q+r]$, where $f\ge m$.
+Using Lemma~\ref{lem:h-deriv-bounds} and \eqref{eq:density-lower},
+\[
+  \mathbb{E}[h''_\theta(Y-\xi)]
+  \;\ge\;
+  \frac{9}{16\theta}\,\mathbb{P}\!\left(|Y-\xi|\le \frac{\theta}{2}\right)
+  \;\ge\;
+  \frac{9}{16\theta}\int_{\xi-\theta/2}^{\xi+\theta/2} f(t)\,dt
+  \;\ge\;
+  \frac{9}{16\theta}\cdot m\theta
+  \;=\;\frac{9m}{16}.
+\]
+Hence $|H_\theta'(\xi)|\ge 9m/16$, and therefore
+\[
+  |\widehat s^\star-s_\theta|
+  \;=\;
+  \frac{\delta\varepsilon|\widehat s^\star|}{|H_\theta'(\xi)|}
+  \;\le\;
+  \frac{16\delta B}{9m}\,\varepsilon.
+\]
+Combining with $|s_\theta-q|\le \theta$ yields \eqref{eq:shat-q-bound}.
+\end{proof}
+
+\paragraph{Discussion of limits.}
+Theorem~\ref{thm:quantile-approx} shows that the relaxation error separates into a smoothing term ($\theta$) and a regularization term ($O(\varepsilon)$), under standard density regularity around the target quantile.
+In practice, $\varepsilon$ is introduced for differentiability and numerical stability, but it also shifts the effective target tail probability through the optimality condition \eqref{eq:Htheta-root}.
+The bound suggests choosing $\varepsilon$ small relative to the scale of $s$ (and decreasing it as $\theta$ shrinks) to recover the original chance constraint.
+
+\subsection{Convergence of stochastic optimization of $\widehat F_\mu$}\label{sec:theory-sgd}
+We now consider minimizing the smooth surrogate outer objective
+\[
+  \widehat F_\mu(x)= f(x) + \frac{([\widehat s^\star(x)]_+)^2}{2\mu},
+\]
+where $\widehat s^\star(x)$ is defined by \eqref{eq:shat-star}.
+We analyze stochastic gradient descent (SGD) on $\widehat F_\mu$ for a \emph{fixed} penalty parameter $\mu>0$.
+(In practice, $\mu$ can be decreased in a continuation scheme; our theory applies to each fixed $\mu$.)
+
+\paragraph{Assumptions.}
+We assume $\widehat F_\mu$ is bounded below by $\widehat F_\mu^{\inf}$ and has $L$-Lipschitz gradient on $\Xc$.
+We also assume access to an unbiased stochastic gradient estimator $g_k$ such that, conditional on $x_k$,
+\begin{equation}
+  \mathbb{E}[g_k\mid x_k]=\nabla \widehat F_\mu(x_k),
+  \qquad
+  \mathbb{E}\!\left[\|g_k-\nabla \widehat F_\mu(x_k)\|^2\mid x_k\right]\le \sigma^2.\label{eq:sgd-assump}
+\end{equation}
+These are standard assumptions in nonconvex stochastic optimization \citep{ghadimi2013stochastic}.
+
+\begin{theorem}[SGD finds a stationary point of the surrogate]\label{thm:sgd}
+Consider the (unconstrained) SGD recursion $x_{k+1}=x_k-\eta g_k$ with constant step size $\eta\le 1/L$ and $g_k$ satisfying \eqref{eq:sgd-assump}.
+Then for any $K\ge 1$,
+\begin{equation}
+  \frac{1}{K}\sum_{k=0}^{K-1}\mathbb{E}\!\left[\|\nabla \widehat F_\mu(x_k)\|^2\right]
+  \;\le\;
+  \frac{2(\widehat F_\mu(x_0)-\widehat F_\mu^{\inf})}{\eta K}
+  + L\eta\sigma^2.\label{eq:sgd-rate}
+\end{equation}
+In particular, choosing $\eta=\Theta(1/\sqrt{K})$ yields the usual $O(1/\sqrt{K})$ convergence rate in expected squared gradient norm.
+\end{theorem}
+\begin{proof}
+By $L$-smoothness of $\widehat F_\mu$, for any update direction $d$ we have
+\[
+  \widehat F_\mu(x_k+d)\le \widehat F_\mu(x_k) + \langle \nabla \widehat F_\mu(x_k), d\rangle + \frac{L}{2}\|d\|^2.
+\]
+With $d=-\eta g_k$, taking conditional expectation given $x_k$ and using \eqref{eq:sgd-assump},
+\begin{align*}
+  \mathbb{E}\!\left[\widehat F_\mu(x_{k+1})\mid x_k\right]
+  &\le \widehat F_\mu(x_k) - \eta \|\nabla \widehat F_\mu(x_k)\|^2 + \frac{L\eta^2}{2}\mathbb{E}\!\left[\|g_k\|^2\mid x_k\right]\\
+  &\le \widehat F_\mu(x_k) - \eta \|\nabla \widehat F_\mu(x_k)\|^2 + \frac{L\eta^2}{2}\left(\|\nabla \widehat F_\mu(x_k)\|^2+\sigma^2\right).
+\end{align*}
+Since $\eta\le 1/L$, the coefficient satisfies $\eta-\frac{L\eta^2}{2}\ge \eta/2$, hence
+\[
+  \mathbb{E}\!\left[\widehat F_\mu(x_{k+1})\mid x_k\right]
+  \le \widehat F_\mu(x_k) - \frac{\eta}{2}\|\nabla \widehat F_\mu(x_k)\|^2 + \frac{L\eta^2}{2}\sigma^2.
+\]
+Taking total expectation and summing over $k=0,\dots,K-1$ gives
+\[
+  \frac{\eta}{2}\sum_{k=0}^{K-1}\mathbb{E}\!\left[\|\nabla \widehat F_\mu(x_k)\|^2\right]
+  \le \widehat F_\mu(x_0)-\mathbb{E}[\widehat F_\mu(x_K)] + \frac{L\eta^2K}{2}\sigma^2
+  \le \widehat F_\mu(x_0)-\widehat F_\mu^{\inf} + \frac{L\eta^2K}{2}\sigma^2,
+\]
+which rearranges to \eqref{eq:sgd-rate}.
+\end{proof}
+
+\paragraph{Remarks.}
+Theorem~\ref{thm:sgd} provides a standard stationarity guarantee for the smooth surrogate $\widehat F_\mu$.
+The Lipschitz constant $L$ generally depends on the relaxation parameters $(\theta,\varepsilon,\mu)$: smaller $\varepsilon$ improves approximation (Theorem~\ref{thm:quantile-approx}) but increases the conditioning of the hypergradient through the factor $(\partial^2_{ss}\widehat G)^{-1}\simeq 1/\varepsilon$ in \eqref{eq:hypergrad}.
+This trade-off motivates continuation strategies in which $(\theta,\varepsilon,\mu)$ are decreased gradually during training.
 
 \section{Experiments}\label{sec:experiments}
 \plan{
