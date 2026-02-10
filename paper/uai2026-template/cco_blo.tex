@@ -121,97 +121,174 @@ For a candidate solution $x$, we measure reliability via the \emph{empirical cov
 \end{equation}
 The chance constraint in \eqref{eq:cco} targets $\mathrm{EC}(x)=\mathbb{P}(g(x,Z)\le 0)\ge 1-\delta$, while $\widehat{\mathrm{EC}}_N(x)$ provides an unbiased Monte Carlo estimate of $\mathrm{EC}(x)$.
 
-\subsection{Multiple Chance Constraints (Remark)}
-We focus on a single chance constraint in \eqref{eq:cco} for clarity, but many applications impose \emph{separate} chance constraints
-\begin{equation}
-  \mathbb{P}\big(g_i(x,Z)\le 0\big)\ge 1-\delta_i,\qquad i=1,\dots,r,\label{eq:cco-multi}
-\end{equation}
-with possibly different violation budgets $\delta_i$.
-Our approach extends by introducing one auxiliary scalar $s_i$ per constraint and defining an inner objective $G_{\delta_i,i}(x,s_i)$ for each $i$.
-With the smoothed strongly-convex surrogate used later, each inner minimizer $s_i^\star(x)=\arg\min_{s_i}\widehat G_{\delta_i,i}(x,s_i)$ is unique, and the inner step decomposes into $r$ independent one-dimensional solves.
-In the outer objective, constraint satisfaction can be encouraged by penalizing the positive parts $\sum_{i=1}^r ([s_i^\star(x)]_+)^2/(2\mu_i)$ (or using a shared $\mu$), while gradients follow from the same implicit differentiation formula applied componentwise.
+\paragraph{Remark on extensions.}
+For clarity, we focus on a single chance constraint in \eqref{eq:cco}; extensions to multiple constraints are discussed in Section~\ref{sec:extensions}.
 
 \section{Background: Quantiles and Superquantiles}\label{sec:background}
-\plan{
-\begin{itemize}
-  \item Quantile reformulation of chance constraints.
-  \item Superquantile/CVaR variational form and why it gives a scalar inner optimization.
-  \item Connect to the deck: $G_\delta(x,s) = s + \delta^{-1}\mathbb{E}[\max(g(x,Z)-s,0)]$.
-\end{itemize}
-}
+Chance constraints are governed by quantiles of the random variable $g(x,Z)$, and it is useful to expose this structure explicitly.
+This section derives a bilevel formulation in which the chance constraint is enforced through a scalar inner optimization problem.
+We then explain why the resulting solution map $x\mapsto s^\star(x)$ can be unique but non-differentiable, motivating the relaxation in Section~\ref{sec:method}.
 
-\begin{definition}[Quantile]
-For a scalar random variable $Y$ with CDF $F_Y$, its $(1-\delta)$-quantile is
-$\Q_{1-\delta}(Y)=\inf\{t\in\mathbb{R}: F_Y(t)\ge 1-\delta\}$.
-\end{definition}
-
-The chance constraint is equivalent to the quantile constraint
+\subsection{Quantile reformulation}
+For a scalar random variable $Y$ with CDF $F_Y$, define its $(1-\delta)$-quantile (value-at-risk) as
+\begin{equation}
+  \Q_{1-\delta}(Y)\;:=\;\inf\{t\in\mathbb{R}: F_Y(t)\ge 1-\delta\}.\label{eq:quantile-def}
+\end{equation}
+Applying this to $Y=g(x,Z)$, the chance constraint in \eqref{eq:cco} is equivalent to
 \begin{equation}
   \mathbb{P}\big(g(x,Z)\le 0\big)\ge 1-\delta
   \quad\Longleftrightarrow\quad
   \Q_{1-\delta}\big(g(x,Z)\big)\le 0.\label{eq:quantile}
 \end{equation}
+Thus, feasibility is controlled by a single scalar summary of the distribution of $g(x,Z)$.
 
-\begin{definition}[Superquantile / CVaR]
-The $(1-\delta)$-superquantile (a.k.a.\ $\CVaR_{1-\delta}$) of $Y$ is
-$\SQ_{1-\delta}(Y) = \mathbb{E}\!\left[Y\mid Y\ge \Q_{1-\delta}(Y)\right]$.
-\end{definition}
-
-\citet{rockafellaruryasev2000cvar} show the variational representation
+\subsection{Superquantiles and a scalar inner problem}
+The \emph{superquantile} (conditional value-at-risk) at level $1-\delta$ is
 \begin{equation}
-  \SQ_{1-\delta}(Y)=\min_{s\in\mathbb{R}} \left\{ s + \frac{1}{\delta}\mathbb{E}\big[(Y-s)_+\big] \right\}.\label{eq:cvar-var}
+  \SQ_{1-\delta}(Y)\;:=\;\mathbb{E}\!\left[Y\mid Y\ge \Q_{1-\delta}(Y)\right].\label{eq:sq-def}
 \end{equation}
-Applying \eqref{eq:cvar-var} with $Y=g(x,Z)$ yields a scalar inner problem over $s$.
-Under mild conditions, the minimizer is unique and recovers the quantile boundary; this underpins the bilevel view of CCO \citep{laguelmalickackooij2021bilevel}.
+A key fact is that superquantiles admit a variational representation as the minimum of a convex function in a scalar auxiliary variable $s$ \citep{rockafellaruryasev2000cvar}:
+\begin{equation}
+  \SQ_{1-\delta}(Y)=\min_{s\in\mathbb{R}} \left\{ s + \frac{1}{\delta}\,\mathbb{E}\big[(Y-s)_+\big] \right\}.\label{eq:cvar-var}
+\end{equation}
+The minimizer set in \eqref{eq:cvar-var} is closely related to the quantile $\Q_{1-\delta}(Y)$; in particular, if $Y$ has a continuous distribution (no atom at the quantile), then the minimizer is unique and equals $\Q_{1-\delta}(Y)$ \citep{rockafellaruryasev2000cvar}.
+
+Specializing to $Y=g(x,Z)$ motivates the scalar inner objective
+\begin{equation}
+  G_\delta(x,s)\;:=\; s + \frac{1}{\delta}\,\mathbb{E}_Z\!\left[(g(x,Z)-s)_+\right].\label{eq:G}
+\end{equation}
+Define the associated solution map
+\begin{equation}
+  s^\star(x)\;\in\;\arg\min_{s\in\mathbb{R}} G_\delta(x,s).\label{eq:sstar-def}
+\end{equation}
+When the minimizer is unique, we write $s^\star(x)$ for the unique scalar minimizer.
+Under the continuity condition above, $s^\star(x)$ coincides with the $(1-\delta)$-quantile of $g(x,Z)$, hence the chance constraint \eqref{eq:quantile} is equivalent to $s^\star(x)\le 0$.
+This yields the bilevel viewpoint of CCO developed in \citet{laguelmalickackooij2021bilevel}.
+
+\subsection{Uniqueness vs.\ differentiability of the quantile map}
+For each fixed $x$, the function $s\mapsto G_\delta(x,s)$ is convex and continuously differentiable.
+Moreover, if $g(x,Z)$ has a continuous distribution, then the first-order condition $\partial_s G_\delta(x,s)=0$ has a unique solution, implying that $s^\star(x)$ is unique.
+
+However, \emph{uniqueness does not imply differentiability} of the map $x\mapsto s^\star(x)$.
+Intuitively, the kink in $(u)_+$ causes the derivatives of $G_\delta$ to involve indicator functions that change discontinuously as $x$ varies.
+Formally, differentiating through the optimality condition $\partial_s G_\delta(x,s^\star(x))=0$ would require second derivatives in $s$ (or an implicit function theorem argument), but $G_\delta(x,s)$ is not twice differentiable in $s$ because of the hinge.
+As a consequence, standard differentiability results for argmin maps (e.g., via Danskin-type theorems requiring $C^2$ smoothness and strong convexity in the inner variable \citep{danskin1967theory}) do not apply directly.
+Section~\ref{sec:method} addresses this by introducing a smooth, strongly convex surrogate whose minimizer is differentiable.
 
 \section{Method: Bilevel Augmented Hypergradient Optimization}\label{sec:method}
-\plan{
-\begin{itemize}
-  \item Define inner objective $G_\delta(x,s)$ and its smoothed strongly-convex surrogate $\widehat G$.
-  \item Define $s^*(x)=\arg\min_s \widehat G(x,s)$ and the outer penalized objective $\widehat F_\mu(x)$.
-  \item Derive hypergradient $\nabla_x s^*(x)$ via implicit differentiation; emphasize scalar $s$.
-  \item Provide algorithm box (outer loop over $x$, inner solve for $s^*$, then gradient step).
-  \item Implementation details: plug-in estimator with minibatches; penalty schedule $\mu_k$; stopping criteria.
-\end{itemize}
-}
+We now describe our bilevel augmented approach.
+Starting from the bilevel reformulation in \eqref{eq:sstar-def}, our goal is to optimize $f(x)$ while driving the quantile proxy $s^\star(x)$ below zero.
+The main challenge is that $s^\star(x)$ can be unique but non-differentiable (Section~\ref{sec:background}), which obstructs direct gradient-based optimization.
+We address this by (i) smoothing and strongly convexifying the inner problem to obtain a differentiable surrogate $\widehat s^\star(x)$, and (ii) penalizing constraint violation through a differentiable augmented objective.
 
-\subsection{Bilevel reformulation}
-Define
+\subsection{From chance feasibility to a bilevel constraint}
+Under the conditions described in Section~\ref{sec:background}, the chance constraint is equivalent to $s^\star(x)\le 0$, where
+\[
+  s^\star(x)\in\arg\min_{s\in\mathbb{R}} G_\delta(x,s),
+  \qquad
+  G_\delta(x,s)= s + \frac{1}{\delta}\,\mathbb{E}\!\left[(g(x,Z)-s)_+\right].
+\]
+This yields the constrained outer problem
 \begin{equation}
-  G_\delta(x,s) \;=\; s + \frac{1}{\delta}\,\mathbb{E}_Z\!\left[(g(x,Z)-s)_+\right].\label{eq:G}
+  \min_{x\in\Xc}\; f(x)\qquad \text{s.t.}\qquad s^\star(x)\le 0.\label{eq:outer-constrained}
 \end{equation}
-Let $s^\star(x)\in\arg\min_s G_\delta(x,s)$.
-The chance constraint \eqref{eq:quantile} motivates enforcing $s^\star(x)\le 0$.
 
-\subsection{Smooth strongly-convex surrogate}
-The hinge $(u)_+=\max\{u,0\}$ is non-smooth.
-We replace it with a $C^2$ smoothing $h_\theta(u)$ (matching $\max\{u,0\}$ outside $[-\theta,\theta]$) and add $\frac{\varepsilon}{2}s^2$ for strong convexity:
+\subsection{A differentiable augmented objective}
+We enforce $s^\star(x)\le 0$ via a standard Lagrangian relaxation. The constrained problem \eqref{eq:outer-constrained} can be written as
+\begin{equation}
+  \min_{x\in\Xc}\;\max_{\lambda\ge 0}\; f(x) + \lambda s^\star(x).\label{eq:minmax}
+\end{equation}
+The max in \eqref{eq:minmax} is non-smooth in $x$.
+We therefore introduce a quadratic regularization on the dual variable (an augmented-Lagrangian-style smoothing):
+\begin{equation}
+  \min_{x\in\Xc}\;\max_{\lambda\ge 0}\; f(x) + \lambda s^\star(x) - \frac{\mu}{2}\lambda^2,\label{eq:aug-lag}
+\end{equation}
+where $\mu>0$ controls the strength of the regularization.
+Maximizing over $\lambda$ yields the equivalent penalized objective
+\begin{equation}
+  F_\mu(x)\;:=\; f(x) + \frac{([s^\star(x)]_+)^2}{2\mu}.\label{eq:Fmu}
+\end{equation}
+When $s^\star(x)\le 0$, the penalty term vanishes; when $s^\star(x)>0$, it grows quadratically.
+
+\subsection{Relaxing the inner problem: smoothness and strong convexity}\label{sec:inner-relax}
+To optimize \eqref{eq:Fmu} with gradients, we need to differentiate through the map $x\mapsto s^\star(x)$.
+As discussed in Section~\ref{sec:background}, $s^\star(x)$ is generally not differentiable because $(u)_+$ is not $C^2$.
+We therefore replace the hinge with a $C^2$ smoothing and add a strongly convex term in $s$.
+
+\paragraph{Smooth approximation of the hinge.}
+We use a twice continuously differentiable approximation $h_\theta:\mathbb{R}\to\mathbb{R}$ to $(\cdot)_+$ with smoothing parameter $\theta>0$:
+\begin{equation}
+  h_\theta(u)=
+  \begin{cases}
+    -\dfrac{u^4}{16\theta^3} + \dfrac{3u^2}{8\theta} + \dfrac{u}{2} + \dfrac{3\theta}{16}, & |u|\le \theta,\\[6pt]
+    \max\{u,0\}, & \text{otherwise.}
+  \end{cases}\label{eq:htheta}
+\end{equation}
+
+\paragraph{Strongly convex surrogate.}
+Define the surrogate inner objective
 \begin{equation}
   \widehat G_{\delta,\theta,\varepsilon}(x,s)
-  \;=\;
+  \;:=\;
   s + \frac{1}{\delta}\,\mathbb{E}_Z\!\left[h_\theta\!\left(g(x,Z)-s\right)\right]
-  + \frac{\varepsilon}{2}s^2.\label{eq:Ghat}
+  + \frac{\varepsilon}{2}s^2,\label{eq:Ghat}
 \end{equation}
-Let $\widehat s^\star(x)=\arg\min_s \widehat G_{\delta,\theta,\varepsilon}(x,s)$, which is unique.
-
-\subsection{Augmented-Lagrangian-style penalty}
-We enforce $\widehat s^\star(x)\le 0$ through a penalty induced by maximizing over $\lambda\ge 0$ with quadratic regularization:
+with $\varepsilon>0$.
+For each $x$, the function $s\mapsto \widehat G_{\delta,\theta,\varepsilon}(x,s)$ is $\varepsilon$-strongly convex and $C^2$, hence it has a unique minimizer
 \begin{equation}
-  \widehat F_{\mu}(x)
-  \;=\;
-  f(x) + \frac{([\widehat s^\star(x)]_+)^2}{2\mu}.\label{eq:Fhat}
+  \widehat s^\star(x)\;:=\;\arg\min_{s\in\mathbb{R}} \widehat G_{\delta,\theta,\varepsilon}(x,s).\label{eq:shat-star}
 \end{equation}
-In practice, we can decrease $\mu$ over iterations to sharpen feasibility.
 
-\subsection{Hypergradient}
-Since $s$ is scalar, implicit differentiation yields
+\subsection{Hypergradients via implicit differentiation}
+Because the inner problem \eqref{eq:shat-star} is strongly convex and smooth in $s$, the solution map $x\mapsto \widehat s^\star(x)$ is differentiable under mild regularity assumptions on $g$.
+Let $\phi(x,s):=\partial_s \widehat G_{\delta,\theta,\varepsilon}(x,s)$.
+The optimality condition $\phi(x,\widehat s^\star(x))=0$ and the fact that $\partial_s\phi(x,s)=\partial^2_{ss}\widehat G_{\delta,\theta,\varepsilon}(x,s)\ge \varepsilon$ imply (by the implicit function theorem) that $\widehat s^\star(x)$ is $C^1$ and
 \begin{equation}
   \nabla_x \widehat s^\star(x)
   \;=\;
   - \frac{\partial^2_{xs}\widehat G_{\delta,\theta,\varepsilon}(x,s)}{\partial^2_{ss}\widehat G_{\delta,\theta,\varepsilon}(x,s)}
   \bigg|_{s=\widehat s^\star(x)}.\label{eq:hypergrad}
 \end{equation}
-We use plug-in estimators of the expectations in \eqref{eq:Ghat} and compute $\nabla_x \widehat F_\mu(x)$ for a gradient-based outer update.
+We then optimize the differentiable surrogate of \eqref{eq:Fmu}:
+\begin{equation}
+  \widehat F_\mu(x)\;:=\; f(x) + \frac{([\widehat s^\star(x)]_+)^2}{2\mu}.\label{eq:Fhat}
+\end{equation}
+
+\subsection{Sample-based implementation}
+In practice, we approximate expectations by sample averages.
+Given a minibatch $\{z^{(j)}\}_{j=1}^M$, we use the plug-in estimator
+\begin{equation}
+  \widehat G_{\delta,\theta,\varepsilon}(x,s;\{z^{(j)}\}_{j=1}^M)
+  \;:=\;
+  s + \frac{1}{\delta M}\sum_{j=1}^M h_\theta\!\left(g(x,z^{(j)})-s\right) + \frac{\varepsilon}{2}s^2.\label{eq:Ghat-plugin}
+\end{equation}
+The inner minimizer $\widehat s^\star(x)$ can be obtained efficiently because it is one-dimensional and the derivative $\partial_s \widehat G$ is strictly increasing in $s$; we use a robust bisection/Newton procedure.
+The outer step applies a gradient-based update (e.g., SGD/Adam) to $\widehat F_\mu(x)$, optionally projecting back onto $\Xc$.
+We may decrease $\mu$ over iterations to sharpen feasibility while keeping gradients stable.
+
+\subsection{Algorithm (two-time-scale view)}
+\begin{figure}[!t]
+  \centering
+  \fbox{\begin{minipage}{0.97\linewidth}
+  \textbf{Bilevel Augmented Hypergradient Method (CCO-BLO).}
+  \begin{enumerate}
+    \item Initialize $x_0\in\Xc$ and $s_0\in\mathbb{R}$. Choose $\delta,\theta,\varepsilon,\{\mu_k\}$.
+    \item For $k=0,1,\dots,K-1$:
+      \begin{enumerate}
+        \item Sample minibatch $\{z^{(j)}\}_{j=1}^M\sim P_Z$.
+        \item (Inner) Compute $s_{k+1}\approx \widehat s^\star(x_k)$ by minimizing \eqref{eq:Ghat-plugin} in $s$.
+        \item (Outer) Form $\nabla_x \widehat F_{\mu_k}(x_k)$ using \eqref{eq:hypergrad} and update $x_{k+1}$ with a gradient step (and project onto $\Xc$ if needed).
+      \end{enumerate}
+  \end{enumerate}
+  \end{minipage}}
+  \caption{High-level procedure; see Section~\ref{sec:inner-relax} for definitions.}
+  \label{fig:algorithm}
+\end{figure}
+
+\subsection{Extensions: multiple constraints}\label{sec:extensions}
+For separate chance constraints $\mathbb{P}(g_i(x,Z)\le 0)\ge 1-\delta_i$, $i=1,\dots,r$, we introduce one scalar $s_i$ per constraint and apply the same construction to each inner objective $\widehat G_{\delta_i,i}(x,s_i)$.
+The inner step decomposes into $r$ independent one-dimensional solves, and the outer penalty can be taken as $\sum_{i=1}^r ([\widehat s_i^\star(x)]_+)^2/(2\mu_i)$ (or with a shared $\mu$).
+This keeps the inner dimensionality small even when the decision variable $x$ is high-dimensional.
 
 \section{Theory (What We Will Prove)}\label{sec:theory}
 \plan{
