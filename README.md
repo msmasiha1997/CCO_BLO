@@ -44,6 +44,14 @@ python scripts/benchmark_synthetic_baselines.py --config configs/benchmark_synth
 python scripts/benchmark_synthetic_baselines.py --config configs/benchmark_synthetic_sweeps.yaml
 ```
 
+## Paper tables from server runs
+
+`runs/` is git-ignored. After running on the server, copy `summary.csv` (and optionally `summary.json`, `config.yaml`) into `results/synthetic/<run_name>/`, commit, then regenerate the LaTeX tables used by the paper:
+
+```bash
+python scripts/make_latex_tables.py --summary results/synthetic/<run_name>/summary.csv
+```
+
 ## Server workflow
 
 1. Push changes from your laptop.

@@ -61,6 +61,7 @@ def _make_problem(problem_cfg: dict[str, Any]) -> Any:
 
     sys.path.insert(0, str(REPO_ROOT / "code"))
     from cco.problems.cpp_problem import CPPProblem  # noqa: E402
+    from cco.problems.heavy_tailed_problem import HeavyTailedProblem  # noqa: E402
     from cco.problems.high_dimension_problem import HighDimensionProblem  # noqa: E402
 
     kind = problem_cfg["kind"]
@@ -87,6 +88,20 @@ def _make_problem(problem_cfg: dict[str, Any]) -> Any:
             initial_x = np.array(init, dtype=float)
         return HighDimensionProblem(
             initial_x=initial_x,
+            samples_num=int(problem_cfg["samples_num"]),
+            max_iter_s=int(problem_cfg["max_iter_s"]),
+            max_iter_x=int(problem_cfg["max_iter_x"]),
+            theta=float(problem_cfg["theta"]),
+            epsilon=float(problem_cfg["epsilon"]),
+            delta=float(problem_cfg["delta"]),
+            lr=float(problem_cfg["lr"]),
+            mu=float(problem_cfg["mu"]),
+            abstol=float(problem_cfg["abstol"]) if problem_cfg.get("abstol") is not None else None,
+        )
+
+    if kind == "heavy_tailed":
+        return HeavyTailedProblem(
+            initial_x=float(problem_cfg["initial_x"]),
             samples_num=int(problem_cfg["samples_num"]),
             max_iter_s=int(problem_cfg["max_iter_s"]),
             max_iter_x=int(problem_cfg["max_iter_x"]),

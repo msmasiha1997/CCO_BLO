@@ -23,6 +23,26 @@ benchmark:
 
   cases:
     # =========================
+    # CPP paper toy (univariate)
+    # =========================
+    - id: cpp1_m500_delta0p10
+      problem:
+        kind: cpp_problem
+        samples_num: 500
+        delta: 0.10
+        initial_x: -4.0
+        max_iter_s: 400
+        max_iter_x: 300
+        theta: 0.09
+        epsilon: 0.01
+        lr: 0.007
+        mu: 0.005
+        abstol: 1.0e-5
+      seeds:
+        start: 0
+        count: 50
+
+    # =========================
     # Dimension scaling (fixed M, delta)
     # =========================
     - id: hd_d10_m100_delta0p05
@@ -157,3 +177,39 @@ benchmark:
         start: 0
         count: 20
 
+    # =========================
+    # Heavy-tailed (univariate lognormal)
+    # =========================
+    - id: ht_m500_delta0p05
+      problem:
+        kind: heavy_tailed
+        samples_num: 500
+        delta: 0.05
+        initial_x: 3.0
+        max_iter_s: 400
+        max_iter_x: 500
+        theta: 0.1
+        epsilon: 0.001
+        lr: 0.01
+        mu: 0.01
+        abstol: 1.0e-5
+      seeds:
+        start: 0
+        count: 30
+
+    - id: ht_m3000_delta0p05
+      problem:
+        kind: heavy_tailed
+        samples_num: 3000
+        delta: 0.05
+        initial_x: 3.0
+        max_iter_s: 400
+        max_iter_x: 500
+        theta: 0.1
+        epsilon: 0.001
+        lr: 0.01
+        mu: 0.01
+        abstol: 1.0e-5
+      seeds:
+        start: 0
+        count: 20

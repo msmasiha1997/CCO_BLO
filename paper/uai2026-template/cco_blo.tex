@@ -408,7 +408,7 @@ This trade-off motivates continuation strategies in which $(\theta,\varepsilon,\
 \begin{itemize}
   \item Synthetic benchmarks aligned with the deck:
     (i) CPP univariate exponential example; (ii) high-dimensional Gaussian linear constraint with varying $d$ and $M$.
-  \item Compare against baselines: TACO; CPP-MIP/CPP-KKT/SA/SAA.
+  \item Compare against baselines: TACO; CPP-MIP/CPP-KKT/SA/SAA; plus KKTBL.
   \item Metrics: objective, empirical coverage, runtime; plus coverage F-score (closeness to target $1-\delta$).
   \item Sweeps: dimension scaling ($d$), sample scaling ($M$), and sensitivity to $\delta$.
   \item Report failure modes: CPP timeouts, instability, dimension/sample sensitivity.
@@ -427,25 +427,21 @@ To summarize reliability in a single scalar, we additionally report a coverage F
 which equals $1$ if and only if the empirical coverage equals the target.
 
 \subsection{Baselines}
-We compare against (i) TACO \citep{laguelmalickackooij2021bilevel} and (ii) conformal predictive programming methods (MIP and KKT encodings, plus SA/SAA variants) \citep{zhao2024conformal}.
+We compare against:
+\begin{itemize}
+  \item \textbf{TACO} \citep{laguelmalickackooij2021bilevel}, a bilevel/DC reformulation optimized via a bundle method.
+  \item \textbf{CPP baselines} \citep{zhao2024conformal}: \textbf{CPP-MIP} and \textbf{CPP-KKT} encodings, as well as the simpler \textbf{SA} (scenario approach) and \textbf{SAA} baselines.
+  \item \textbf{KKTBL}, a KKT-based bilevel baseline implemented in our codebase for the scalar inner CVaR surrogate.
+\end{itemize}
+All baselines use the same training samples (to construct constraints) and the same independent evaluation samples for empirical coverage reporting.
 
-\subsection{Results (placeholders)}
-\todo{Insert tables/figures from runs/ once sweeps finish on the server.}
+\subsection{Sweeps}
+We run synthetic sweeps over (i) decision dimension $d$ (keeping training sample size fixed), (ii) training sample size $M$ (keeping $d$ fixed), and (iii) safety level $\delta$.
+We additionally include a heavy-tailed univariate setting (log-normal noise) to test sensitivity to tail behavior.
 
-\begin{table}[!t]
-  \centering
-  \caption{Synthetic Benchmark Summary (placeholder).}\label{tab:main-results}
-  \begin{tabular}{lrrrr}
-    \toprule
-    Method & Obj.\ $\downarrow$ & EC $\uparrow$ & $F_{\mathrm{EC}}\uparrow$ & Time $\downarrow$\\
-    \midrule
-    Ours & -- & -- & -- & --\\
-    TACO & -- & -- & -- & --\\
-    CPP-MIP & -- & -- & -- & --\\
-    CPP-KKT & -- & -- & -- & --\\
-    \bottomrule
-  \end{tabular}
-\end{table}
+\subsection{Results}
+\input{tables/synthetic_results}
+\todo{Replace the placeholder table by committing benchmark outputs to \texttt{results/synthetic/} and running \texttt{python scripts/make\_latex\_tables.py}.}
 
 \section{Discussion and Limitations}\label{sec:discussion}
 \plan{
