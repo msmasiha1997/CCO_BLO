@@ -9,6 +9,8 @@
 \usepackage{amssymb}
 \usepackage{amsthm}
 \usepackage{booktabs}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
 \usepackage{xcolor}
 \usepackage{hyperref}
 
@@ -122,7 +124,7 @@ For a candidate solution $x$, we measure reliability via the \emph{empirical cov
 The chance constraint in \eqref{eq:cco} targets $\mathrm{EC}(x)=\mathbb{P}(g(x,Z)\le 0)\ge 1-\delta$, while $\widehat{\mathrm{EC}}_N(x)$ provides an unbiased Monte Carlo estimate of $\mathrm{EC}(x)$.
 
 \paragraph{Remark on extensions.}
-For clarity, we focus on a single chance constraint in \eqref{eq:cco}; extensions to multiple constraints are discussed in Section~\ref{sec:extensions}.
+For clarity, we focus on a single chance constraint in \eqref{eq:cco}; extensions to multiple constraints are discussed in Section~\ref{sec:method}.
 
 \section{Background: Quantiles and Superquantiles}\label{sec:background}
 Chance constraints are governed by quantiles of the random variable $g(x,Z)$, and it is useful to expose this structure explicitly.
@@ -287,29 +289,25 @@ The inner minimizer $\widehat s^\star(x)$ can be obtained efficiently because it
 The outer step applies a gradient-based update (e.g., SGD/Adam) to $\widehat F_\mu(x)$, optionally projecting back onto $\Xc$.
 We may decrease $\mu$ over iterations to sharpen feasibility while keeping gradients stable.
 
-\subsection{Algorithm (two-time-scale view)}
-\begin{figure}[!t]
-  \centering
-  \fbox{\begin{minipage}{0.97\linewidth}
-  \textbf{Bilevel Augmented Hypergradient Method (CCO-BLO).}
-  \begin{enumerate}
-    \item Initialize $x_0\in\Xc$ and $s_0\in\mathbb{R}$. Choose $\delta,\theta,\varepsilon,\{\mu_k\}$.
-    \item For $k=0,1,\dots,K-1$:
-      \begin{enumerate}
-        \item Sample minibatch $\{z^{(j)}\}_{j=1}^M\sim P_Z$.
-        \item (Inner) Compute $s_{k+1}\approx \widehat s^\star(x_k)$ by minimizing \eqref{eq:Ghat-plugin} in $s$.
-        \item (Outer) Form $\nabla_x \widehat F_{\mu_k}(x_k)$ using \eqref{eq:hypergrad} and update $x_{k+1}$ with a gradient step (and project onto $\Xc$ if needed).
-      \end{enumerate}
-  \end{enumerate}
-  \end{minipage}}
-  \caption{High-level procedure; see Section~\ref{sec:inner-relax} for definitions.}
-  \label{fig:algorithm}
-\end{figure}
+\begin{algorithm}[!t]
+  \caption{CCO-BLO: bilevel augmented hypergradient method}\label{alg:ccoblo}
+  \begin{algorithmic}[1]
+    \Require safety level $\delta$, smoothing $\theta$, strong convexity $\varepsilon$, penalty schedule $\{\mu_k\}_{k=0}^{K-1}$, batch size $M$, initial $x_0\in\Xc$
+    \State initialize $s_0\in\mathbb{R}$
+    \For{$k=0,1,\dots,K-1$}
+      \State sample minibatch $\{z^{(j)}\}_{j=1}^M\sim P_Z$
+      \State \textbf{(inner)} compute $s_{k+1}\approx \widehat s^\star(x_k)$ by minimizing $\widehat G_{\delta,\theta,\varepsilon}(x_k,s;\{z^{(j)}\})$ in $s$ (e.g., bisection/Newton)
+      \State \textbf{(hypergradient)} compute $\nabla_x \widehat s^\star(x_k)$ via \eqref{eq:hypergrad} using the same minibatch
+      \State \textbf{(outer)} form $\nabla_x \widehat F_{\mu_k}(x_k)$ for $\widehat F_{\mu}(x)=f(x)+\frac{([\widehat s^\star(x)]_+)^2}{2\mu}$
+      \State update $x_{k+1}\leftarrow \Pi_{\Xc}\!\left(x_k - \eta_k \nabla_x \widehat F_{\mu_k}(x_k)\right)$ (or use Adam)
+    \EndFor
+    \State \Return $x_K$
+  \end{algorithmic}
+\end{algorithm}
 
-\subsection{Extensions: multiple constraints}\label{sec:extensions}
+\paragraph{Multiple chance constraints.}
 For separate chance constraints $\mathbb{P}(g_i(x,Z)\le 0)\ge 1-\delta_i$, $i=1,\dots,r$, we introduce one scalar $s_i$ per constraint and apply the same construction to each inner objective $\widehat G_{\delta_i,i}(x,s_i)$.
 The inner step decomposes into $r$ independent one-dimensional solves, and the outer penalty can be taken as $\sum_{i=1}^r ([\widehat s_i^\star(x)]_+)^2/(2\mu_i)$ (or with a shared $\mu$).
-This keeps the inner dimensionality small even when the decision variable $x$ is high-dimensional.
 
 \section{Theory (What We Will Prove)}\label{sec:theory}
 \plan{
