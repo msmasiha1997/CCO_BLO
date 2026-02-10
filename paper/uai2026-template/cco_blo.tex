@@ -122,11 +122,14 @@ For a candidate solution $x$, we measure reliability via the \emph{empirical cov
 The chance constraint in \eqref{eq:cco} targets $\mathrm{EC}(x)=\mathbb{P}(g(x,Z)\le 0)\ge 1-\delta$, while $\widehat{\mathrm{EC}}_N(x)$ provides an unbiased Monte Carlo estimate of $\mathrm{EC}(x)$.
 
 \subsection{Multiple Chance Constraints (Remark)}
-While we present the method for a single chance constraint for clarity, many applications involve constraints $g_1,\dots,g_r$ with individual levels $\delta_1,\dots,\delta_r$:
-\[
-  \mathbb{P}(g_i(x,Z)\le 0)\ge 1-\delta_i,\quad i=1,\dots,r.
-\]
-Our bilevel construction extends by introducing one scalar auxiliary variable per constraint, yielding a small inner problem of dimension $r$ even when $d$ is large.
+We focus on a single chance constraint in \eqref{eq:cco} for clarity, but many applications impose \emph{separate} chance constraints
+\begin{equation}
+  \mathbb{P}\big(g_i(x,Z)\le 0\big)\ge 1-\delta_i,\qquad i=1,\dots,r,\label{eq:cco-multi}
+\end{equation}
+with possibly different violation budgets $\delta_i$.
+Our approach extends by introducing one auxiliary scalar $s_i$ per constraint and defining an inner objective $G_{\delta_i,i}(x,s_i)$ for each $i$.
+With the smoothed strongly-convex surrogate used later, each inner minimizer $s_i^\star(x)=\arg\min_{s_i}\widehat G_{\delta_i,i}(x,s_i)$ is unique, and the inner step decomposes into $r$ independent one-dimensional solves.
+In the outer objective, constraint satisfaction can be encouraged by penalizing the positive parts $\sum_{i=1}^r ([s_i^\star(x)]_+)^2/(2\mu_i)$ (or using a shared $\mu$), while gradients follow from the same implicit differentiation formula applied componentwise.
 
 \section{Background: Quantiles and Superquantiles}\label{sec:background}
 \plan{
