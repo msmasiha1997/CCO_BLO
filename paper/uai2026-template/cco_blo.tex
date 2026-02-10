@@ -83,22 +83,50 @@ Sample-based encodings (e.g., mixed-integer formulations) and conformal-predicti
 \end{itemize}
 
 \section{Problem Setup}\label{sec:setup}
-\plan{
-\begin{itemize}
-  \item Define CCO and assumptions (convexity in $x$ when needed; $Z$ distribution access via sampling).
-  \item Clarify what ``coverage'' means in experiments (empirical estimate on fresh samples).
-  \item Include multi-constraint extension as a remark (scalar inner variable per constraint).
-\end{itemize}
-}
-
-Let $\Xc\subseteq \mathbb{R}^d$ be a closed convex set, $Z\sim P_Z$ a random vector, $f:\mathbb{R}^d\to\mathbb{R}$ an objective, and $g:\mathbb{R}^d\times\mathbb{R}^m\to\mathbb{R}$ a constraint function.
-We consider
+\subsection{Chance-Constrained Optimization}
+Let $\Xc\subseteq \mathbb{R}^d$ be a nonempty closed convex set, $Z\sim P_Z$ a random vector on $\mathbb{R}^m$, $f:\mathbb{R}^d\to\mathbb{R}$ an objective, and $g:\mathbb{R}^d\times\mathbb{R}^m\to\mathbb{R}$ a (random) constraint function.
+We study the chance-constrained optimization problem
 \begin{align}
   \min_{x\in \Xc}\; & f(x)\label{eq:cco}\\
   \text{s.t.}\; & \mathbb{P}\big(g(x,Z)\le 0\big)\ge 1-\delta,\nonumber
 \end{align}
-where $\delta\in(0,1)$ is the allowed violation probability.
-We assume access to i.i.d.\ samples from $P_Z$.
+where $\delta\in(0,1)$ controls the maximum acceptable probability of violation.
+Equivalently, the violation probability satisfies $\mathbb{P}(g(x,Z)>0)\le \delta$.
+
+\paragraph{Convexity.}
+Throughout, we assume $f$ is convex and (sub)gradient-accessible.
+Moreover, for every $z$, the map $x\mapsto g(x,z)$ is convex (and typically differentiable), and $\Xc$ is convex so that projection or proximal steps are well-defined.
+Importantly, even under these convexity assumptions, the feasible set
+\[
+  \{x\in\Xc:\mathbb{P}(g(x,Z)\le 0)\ge 1-\delta\}
+\]
+is generally \emph{not} convex because it is defined through a quantile of the random variable $g(x,Z)$.
+This non-smooth, nonconvex geometry is a major source of algorithmic difficulty.
+
+\subsection{Access Model and Sampling}
+We do not assume closed-form knowledge of $P_Z$.
+Instead, we assume access to i.i.d.\ samples $z^{(1)},\dots,z^{(M)}\sim P_Z$, which is the standard setting in data-driven optimization and learning.
+In experiments, we distinguish:
+\begin{itemize}
+  \item \emph{Training samples} used internally by an algorithm (e.g., to approximate expectations or quantiles).
+  \item \emph{Evaluation samples} used only to estimate out-of-sample reliability.
+\end{itemize}
+
+\subsection{Empirical Coverage (Reliability Metric)}
+For a candidate solution $x$, we measure reliability via the \emph{empirical coverage} computed on fresh i.i.d.\ samples $\tilde z^{(1)},\dots,\tilde z^{(N)}\sim P_Z$:
+\begin{equation}
+  \widehat{\mathrm{EC}}_N(x)
+  \;:=\;
+  \frac{1}{N}\sum_{i=1}^N \mathbf{1}\!\left\{g\!\left(x,\tilde z^{(i)}\right)\le 0\right\}.\label{eq:ec}
+\end{equation}
+The chance constraint in \eqref{eq:cco} targets $\mathrm{EC}(x)=\mathbb{P}(g(x,Z)\le 0)\ge 1-\delta$, while $\widehat{\mathrm{EC}}_N(x)$ provides an unbiased Monte Carlo estimate of $\mathrm{EC}(x)$.
+
+\subsection{Multiple Chance Constraints (Remark)}
+While we present the method for a single chance constraint for clarity, many applications involve constraints $g_1,\dots,g_r$ with individual levels $\delta_1,\dots,\delta_r$:
+\[
+  \mathbb{P}(g_i(x,Z)\le 0)\ge 1-\delta_i,\quad i=1,\dots,r.
+\]
+Our bilevel construction extends by introducing one scalar auxiliary variable per constraint, yielding a small inner problem of dimension $r$ even when $d$ is large.
 
 \section{Background: Quantiles and Superquantiles}\label{sec:background}
 \plan{
@@ -269,4 +297,3 @@ We compare against (i) TACO \citep{laguelmalickackooij2021bilevel} and (ii) conf
 \bibliography{references}
 
 \end{document}
-
