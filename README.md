@@ -41,6 +41,7 @@ Run the multi-method benchmark (Core/TACO/CPP-*):
 
 ```bash
 python scripts/benchmark_synthetic_baselines.py --config configs/benchmark_synthetic_baselines.yaml
+python scripts/benchmark_synthetic_baselines.py --config configs/benchmark_synthetic_sweeps.yaml
 ```
 
 ## Server workflow

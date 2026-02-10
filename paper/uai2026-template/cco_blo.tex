@@ -153,7 +153,7 @@ A key fact is that superquantiles admit a variational representation as the mini
 \begin{equation}
   \SQ_{1-\delta}(Y)=\min_{s\in\mathbb{R}} \left\{ s + \frac{1}{\delta}\,\mathbb{E}\big[(Y-s)_+\big] \right\}.\label{eq:cvar-var}
 \end{equation}
-The minimizer set in \eqref{eq:cvar-var} is closely related to the quantile $\Q_{1-\delta}(Y)$; in particular, if $Y$ has a continuous distribution (no atom at the quantile), then the minimizer is unique and equals $\Q_{1-\delta}(Y)$ \citep{rockafellaruryasev2000cvar}.
+The minimizer set in \eqref{eq:cvar-var} is closely related to the quantile $\Q_{1-\delta}(Y)$; in particular, if the $(1-\delta)$-quantile is unique---e.g., if $Y$ admits a continuous density that is strictly positive in a neighborhood of $q=\Q_{1-\delta}(Y)$---then the minimizer is unique and equals $q$ \citep{rockafellaruryasev2000cvar}.
 
 Specializing to $Y=g(x,Z)$ motivates the scalar inner objective
 \begin{equation}
@@ -164,33 +164,26 @@ Define the associated solution map
   s^\star(x)\;\in\;\arg\min_{s\in\mathbb{R}} G_\delta(x,s).\label{eq:sstar-def}
 \end{equation}
 When the minimizer is unique, we write $s^\star(x)$ for the unique scalar minimizer.
-Under the continuity condition above, $s^\star(x)$ coincides with the $(1-\delta)$-quantile of $g(x,Z)$, hence the chance constraint \eqref{eq:quantile} is equivalent to $s^\star(x)\le 0$.
+Under the uniqueness condition above, $s^\star(x)$ coincides with the $(1-\delta)$-quantile of $g(x,Z)$, hence the chance constraint \eqref{eq:quantile} is equivalent to $s^\star(x)\le 0$.
 This yields the bilevel viewpoint of CCO developed in \citet{laguelmalickackooij2021bilevel}.
 
 \begin{lemma}[Uniqueness of the inner minimizer]\label{lem:unique-sstar}
-Fix $x\in\Xc$ and define $Y:=g(x,Z)$.
-Assume $Z$ is absolutely continuous with respect to Lebesgue measure and $g(x,\cdot)$ is differentiable.
-If $Y$ has a continuous distribution (equivalently, $\mathbb{P}(Y=t)=0$ for all $t\in\mathbb{R}$), then $\arg\min_{s\in\mathbb{R}} G_\delta(x,s)$ is a singleton and the unique minimizer satisfies
+Fix $x\in\Xc$ and define $Y:=g(x,Z)$ with $q:=\Q_{1-\delta}(Y)$.
+Assume the $(1-\delta)$-quantile is unique (equivalently, the quantile set reduces to a point; for instance, this holds if $Y$ admits a continuous density that is strictly positive in a neighborhood of $q$).
+Then $\arg\min_{s\in\mathbb{R}} G_\delta(x,s)$ is a singleton and the unique minimizer satisfies
 \[
   s^\star(x)=\Q_{1-\delta}(Y)=\Q_{1-\delta}(g(x,Z)).
 \]
 \end{lemma}
-\begin{proof}
-For fixed $x$, the function $s\mapsto G_\delta(x,s)$ is convex.
-Let $F_Y$ be the CDF of $Y$.
-Standard subgradient calculus for the hinge yields
-\[
-  \partial_s G_\delta(x,s)
-  \;=\;
-  \left[\,1-\frac{1}{\delta}\mathbb{P}(Y>s)\;,\;1-\frac{1}{\delta}\mathbb{P}(Y\ge s)\,\right].
-\]
-Thus $0\in \partial_s G_\delta(x,s)$ if and only if $\mathbb{P}(Y>s)\le \delta \le \mathbb{P}(Y\ge s)$, i.e., $s$ belongs to the $(1-\delta)$-quantile set of $Y$.
-If $Y$ has no atom at the quantile (in particular, if $Y$ is continuous), then this set reduces to a single point, so the minimizer is unique and equals $\Q_{1-\delta}(Y)$.
-\end{proof}
+\emph{Proof in Appendix~\ref{app:proofs}.}
 
 \subsection{Uniqueness vs.\ differentiability of the quantile map}
-For each fixed $x$, the function $s\mapsto G_\delta(x,s)$ is convex and continuously differentiable.
-Moreover, if $g(x,Z)$ has a continuous distribution, then the first-order condition $\partial_s G_\delta(x,s)=0$ has a unique solution, implying that $s^\star(x)$ is unique.
+For each fixed $x$, the function $s\mapsto G_\delta(x,s)$ is convex.
+If $Y=g(x,Z)$ has no atom, then $G_\delta(x,s)$ is differentiable in $s$ with
+\[
+  \partial_s G_\delta(x,s)=1-\frac{1}{\delta}\mathbb{P}(Y>s).
+\]
+If moreover the $(1-\delta)$-quantile is unique (Lemma~\ref{lem:unique-sstar}), then the first-order condition has a unique solution and $s^\star(x)$ is unique.
 
 However, \emph{uniqueness does not imply differentiability} of the map $x\mapsto s^\star(x)$.
 Intuitively, the kink in $(u)_+$ causes the derivatives of $G_\delta$ to involve indicator functions that change discontinuously as $x$ varies.
@@ -326,10 +319,10 @@ and its unique minimizer is $\widehat s^\star(x)=\arg\min_s \widehat G_{\delta,\
 We relate $\widehat s^\star(x)$ to the original quantile $q$.
 
 \paragraph{Assumptions.}
-We assume that $Y$ has a continuous distribution and admits a density $f$ that is continuous at the quantile.
+We assume that $Y$ has a continuous distribution and admits a density $p_Y$ that is continuous at the quantile.
 Moreover, we assume a \emph{quantile regularity} condition: there exist constants $m>0$ and $r>0$ such that
 \begin{equation}
-  f(t)\ge m\qquad\text{for all }t\in[q-r,q+r].\label{eq:density-lower}
+  p_Y(t)\ge m\qquad\text{for all }t\in[q-r,q+r].\label{eq:density-lower}
 \end{equation}
 This condition is standard in quantile sensitivity analysis: it rules out flat CDF regions at the target level and implies local Lipschitzness of the inverse CDF around $q$.
 
@@ -337,28 +330,14 @@ This condition is standard in quantile sensitivity analysis: it rules out flat C
 The smoothing $h_\theta$ in \eqref{eq:htheta} satisfies $0\le h'_\theta(u)\le 1$ for all $u$ and $h''_\theta(u)=0$ for $|u|>\theta$.
 Moreover, for $|u|\le \theta/2$ we have $h''_\theta(u)\ge \frac{9}{16\theta}$.
 \end{lemma}
-\begin{proof}
-By construction $h_\theta$ coincides with $\max\{u,0\}$ outside $[-\theta,\theta]$, hence $h'_\theta\in\{0,1\}$ and $h''_\theta=0$ there.
-Inside $[-\theta,\theta]$, $h_\theta$ is a quartic polynomial whose first derivative interpolates between $0$ and $1$ and whose second derivative is
-$h''_\theta(u)=\frac{3}{4\theta}\left(1-\frac{u^2}{\theta^2}\right)$.
-For $|u|\le \theta/2$, $1-u^2/\theta^2\ge 3/4$, giving $h''_\theta(u)\ge 9/(16\theta)$.
-\end{proof}
+\emph{Proof in Appendix~\ref{app:proofs}.}
 
 \begin{lemma}[Smoothing-only bias]\label{lem:smoothing-bias}
+Assume \eqref{eq:density-lower} holds.
 Let $s_\theta$ be any solution to $\mathbb{E}[h'_\theta(Y-s_\theta)]=\delta$ (equivalently, any minimizer of $\widehat G_{\delta,\theta,0}(x,\cdot)$).
 Then the true quantile satisfies $q\in[s_\theta-\theta,s_\theta+\theta]$, hence $|s_\theta-q|\le \theta$.
 \end{lemma}
-\begin{proof}
-Since $0\le h'_\theta\le 1$ and $h'_\theta(u)=1$ for $u\ge \theta$ and $h'_\theta(u)=0$ for $u\le -\theta$, we have
-\[
-  \mathbf{1}\{Y\ge s+\theta\}\;\le\; h'_\theta(Y-s)\;\le\;\mathbf{1}\{Y\ge s-\theta\}
-  \qquad\text{a.s.}
-\]
-Taking expectations and setting $\mathbb{E}[h'_\theta(Y-s_\theta)]=\delta$ yields
-$\mathbb{P}(Y\ge s_\theta+\theta)\le \delta\le \mathbb{P}(Y\ge s_\theta-\theta)$, i.e.,
-$F(s_\theta-\theta)\le 1-\delta\le F(s_\theta+\theta)$.
-By definition of $q=\Q_{1-\delta}(Y)$, this implies $q\in[s_\theta-\theta,s_\theta+\theta]$.
-\end{proof}
+\emph{Proof in Appendix~\ref{app:proofs}.}
 
 \begin{theorem}[Quantile approximation under $\theta$-smoothing and $\varepsilon$-regularization]\label{thm:quantile-approx}
 Let $q=\Q_{1-\delta}(Y)$ and assume \eqref{eq:density-lower} holds.
@@ -372,47 +351,15 @@ Then
 \end{equation}
 In particular, if $\theta\to 0$ and $\varepsilon\to 0$ then $\widehat s^\star\to q$.
 \end{theorem}
-\begin{proof}
-Let $H_\theta(s):=\mathbb{E}[h'_\theta(Y-s)]$, which is continuous and nonincreasing in $s$.
-Let $s_\theta$ be any solution to $H_\theta(s_\theta)=\delta$; by Lemma~\ref{lem:smoothing-bias}, $|s_\theta-q|\le \theta$.
+\emph{Proof in Appendix~\ref{app:proofs}.}
 
-The first-order optimality condition for $\widehat s^\star$ is
+Define $H_\theta(s):=\mathbb{E}[h'_\theta(Y-s)]$.
+The first-order optimality condition for $\widehat s^\star$ can be written as
 \begin{equation}
-  0=\partial_s \widehat G_{\delta,\theta,\varepsilon}(x,\widehat s^\star)
-  = 1 - \frac{1}{\delta}H_\theta(\widehat s^\star) + \varepsilon \widehat s^\star,
-  \qquad\text{so}\qquad
+  0 = 1 - \frac{1}{\delta}H_\theta(\widehat s^\star) + \varepsilon \widehat s^\star
+  \qquad\Longleftrightarrow\qquad
   H_\theta(\widehat s^\star)=\delta(1+\varepsilon \widehat s^\star).\label{eq:Htheta-root}
 \end{equation}
-Subtracting $H_\theta(s_\theta)=\delta$ from \eqref{eq:Htheta-root} gives
-$H_\theta(\widehat s^\star)-H_\theta(s_\theta)=\delta\varepsilon \widehat s^\star$.
-By the mean value theorem, there exists $\xi$ between $\widehat s^\star$ and $s_\theta$ such that
-\[
-  H_\theta(\widehat s^\star)-H_\theta(s_\theta)=H_\theta'(\xi)\,(\widehat s^\star-s_\theta),
-  \qquad
-  H_\theta'(\xi)=-\mathbb{E}\!\left[h''_\theta(Y-\xi)\right].
-\]
-Under the assumption that $\widehat s^\star\in[q-r/2,q+r/2]$ and $\theta\le r/2$, the interval $[\xi-\theta/2,\xi+\theta/2]$ lies inside $[q-r,q+r]$, where $f\ge m$.
-Using Lemma~\ref{lem:h-deriv-bounds} and \eqref{eq:density-lower},
-\[
-  \mathbb{E}[h''_\theta(Y-\xi)]
-  \;\ge\;
-  \frac{9}{16\theta}\,\mathbb{P}\!\left(|Y-\xi|\le \frac{\theta}{2}\right)
-  \;\ge\;
-  \frac{9}{16\theta}\int_{\xi-\theta/2}^{\xi+\theta/2} f(t)\,dt
-  \;\ge\;
-  \frac{9}{16\theta}\cdot m\theta
-  \;=\;\frac{9m}{16}.
-\]
-Hence $|H_\theta'(\xi)|\ge 9m/16$, and therefore
-\[
-  |\widehat s^\star-s_\theta|
-  \;=\;
-  \frac{\delta\varepsilon|\widehat s^\star|}{|H_\theta'(\xi)|}
-  \;\le\;
-  \frac{16\delta B}{9m}\,\varepsilon.
-\]
-Combining with $|s_\theta-q|\le \theta$ yields \eqref{eq:shat-q-bound}.
-\end{proof}
 
 \paragraph{Discussion of limits.}
 Theorem~\ref{thm:quantile-approx} shows that the relaxation error separates into a smoothing term ($\theta$) and a regularization term ($O(\varepsilon)$), under standard density regularity around the target quantile.
@@ -449,30 +396,7 @@ Then for any $K\ge 1$,
 \end{equation}
 In particular, choosing $\eta=\Theta(1/\sqrt{K})$ yields the usual $O(1/\sqrt{K})$ convergence rate in expected squared gradient norm.
 \end{theorem}
-\begin{proof}
-By $L$-smoothness of $\widehat F_\mu$, for any update direction $d$ we have
-\[
-  \widehat F_\mu(x_k+d)\le \widehat F_\mu(x_k) + \langle \nabla \widehat F_\mu(x_k), d\rangle + \frac{L}{2}\|d\|^2.
-\]
-With $d=-\eta g_k$, taking conditional expectation given $x_k$ and using \eqref{eq:sgd-assump},
-\begin{align*}
-  \mathbb{E}\!\left[\widehat F_\mu(x_{k+1})\mid x_k\right]
-  &\le \widehat F_\mu(x_k) - \eta \|\nabla \widehat F_\mu(x_k)\|^2 + \frac{L\eta^2}{2}\mathbb{E}\!\left[\|g_k\|^2\mid x_k\right]\\
-  &\le \widehat F_\mu(x_k) - \eta \|\nabla \widehat F_\mu(x_k)\|^2 + \frac{L\eta^2}{2}\left(\|\nabla \widehat F_\mu(x_k)\|^2+\sigma^2\right).
-\end{align*}
-Since $\eta\le 1/L$, the coefficient satisfies $\eta-\frac{L\eta^2}{2}\ge \eta/2$, hence
-\[
-  \mathbb{E}\!\left[\widehat F_\mu(x_{k+1})\mid x_k\right]
-  \le \widehat F_\mu(x_k) - \frac{\eta}{2}\|\nabla \widehat F_\mu(x_k)\|^2 + \frac{L\eta^2}{2}\sigma^2.
-\]
-Taking total expectation and summing over $k=0,\dots,K-1$ gives
-\[
-  \frac{\eta}{2}\sum_{k=0}^{K-1}\mathbb{E}\!\left[\|\nabla \widehat F_\mu(x_k)\|^2\right]
-  \le \widehat F_\mu(x_0)-\mathbb{E}[\widehat F_\mu(x_K)] + \frac{L\eta^2K}{2}\sigma^2
-  \le \widehat F_\mu(x_0)-\widehat F_\mu^{\inf} + \frac{L\eta^2K}{2}\sigma^2,
-\]
-which rearranges to \eqref{eq:sgd-rate}.
-\end{proof}
+\emph{Proof in Appendix~\ref{app:proofs}.}
 
 \paragraph{Remarks.}
 Theorem~\ref{thm:sgd} provides a standard stationarity guarantee for the smooth surrogate $\widehat F_\mu$.
@@ -543,5 +467,112 @@ We compare against (i) TACO \citep{laguelmalickackooij2021bilevel} and (ii) conf
 }
 
 \bibliography{references}
+
+\appendix
+\section{Proofs}\label{app:proofs}
+
+\paragraph{Proof of Lemma~\ref{lem:unique-sstar}.}
+\begin{proof}
+For fixed $x$, the function $s\mapsto G_\delta(x,s)$ is convex.
+Let $F_Y$ be the CDF of $Y$.
+Standard subgradient calculus for the hinge yields
+\[
+  \partial_s G_\delta(x,s)
+  \;=\;
+  \left[\,1-\frac{1}{\delta}\mathbb{P}(Y>s)\;,\;1-\frac{1}{\delta}\mathbb{P}(Y\ge s)\,\right].
+\]
+Thus $0\in \partial_s G_\delta(x,s)$ if and only if $\mathbb{P}(Y>s)\le \delta \le \mathbb{P}(Y\ge s)$, i.e., $s$ belongs to the $(1-\delta)$-quantile set of $Y$.
+If the $(1-\delta)$-quantile is unique, this set reduces to a single point, so the minimizer is unique and equals $\Q_{1-\delta}(Y)$.
+\end{proof}
+
+\paragraph{Proof of Lemma~\ref{lem:h-deriv-bounds}.}
+\begin{proof}
+By construction $h_\theta$ coincides with $\max\{u,0\}$ outside $[-\theta,\theta]$, hence $h'_\theta\in\{0,1\}$ and $h''_\theta=0$ there.
+Inside $[-\theta,\theta]$, $h_\theta$ is a quartic polynomial whose first derivative interpolates between $0$ and $1$ and whose second derivative is
+$h''_\theta(u)=\frac{3}{4\theta}\left(1-\frac{u^2}{\theta^2}\right)$.
+For $|u|\le \theta/2$, $1-u^2/\theta^2\ge 3/4$, giving $h''_\theta(u)\ge 9/(16\theta)$.
+\end{proof}
+
+\paragraph{Proof of Lemma~\ref{lem:smoothing-bias}.}
+\begin{proof}
+Let $F_Y$ be the CDF of $Y$.
+Since $0\le h'_\theta\le 1$ and $h'_\theta(u)=1$ for $u\ge \theta$ and $h'_\theta(u)=0$ for $u\le -\theta$, we have
+\[
+  \mathbf{1}\{Y\ge s+\theta\}\;\le\; h'_\theta(Y-s)\;\le\;\mathbf{1}\{Y\ge s-\theta\}
+  \qquad\text{a.s.}
+\]
+Taking expectations and setting $\mathbb{E}[h'_\theta(Y-s_\theta)]=\delta$ yields
+$\mathbb{P}(Y\ge s_\theta+\theta)\le \delta\le \mathbb{P}(Y\ge s_\theta-\theta)$, i.e.,
+$F_Y(s_\theta-\theta)\le 1-\delta\le F_Y(s_\theta+\theta)$.
+The right inequality implies $q\le s_\theta+\theta$.
+For the left inequality, suppose for contradiction that $s_\theta-\theta>q$.
+Then $s_\theta-\theta\ge q$ and by \eqref{eq:density-lower} we have
+$F_Y(s_\theta-\theta)\ge F_Y(q) + \int_q^{\min\{s_\theta-\theta,q+r\}} p_Y(t)\,dt > 1-\delta$,
+contradicting $F_Y(s_\theta-\theta)\le 1-\delta$.
+Hence $s_\theta-\theta\le q$, and therefore $q\in[s_\theta-\theta,s_\theta+\theta]$.
+\end{proof}
+
+\paragraph{Proof of Theorem~\ref{thm:quantile-approx}.}
+\begin{proof}
+Let $H_\theta(s):=\mathbb{E}[h'_\theta(Y-s)]$, which is continuous and nonincreasing in $s$.
+Let $s_\theta$ be any solution to $H_\theta(s_\theta)=\delta$; by Lemma~\ref{lem:smoothing-bias}, $|s_\theta-q|\le \theta$.
+
+The first-order optimality condition for $\widehat s^\star$ is \eqref{eq:Htheta-root}.
+Subtracting $H_\theta(s_\theta)=\delta$ from \eqref{eq:Htheta-root} gives
+$H_\theta(\widehat s^\star)-H_\theta(s_\theta)=\delta\varepsilon \widehat s^\star$.
+By the mean value theorem, there exists $\xi$ between $\widehat s^\star$ and $s_\theta$ such that
+\[
+  H_\theta(\widehat s^\star)-H_\theta(s_\theta)=H_\theta'(\xi)\,(\widehat s^\star-s_\theta),
+  \qquad
+  H_\theta'(\xi)=-\mathbb{E}\!\left[h''_\theta(Y-\xi)\right].
+\]
+Under the assumption that $\widehat s^\star\in[q-r/2,q+r/2]$ and $\theta\le r/2$, the interval $[\xi-\theta/2,\xi+\theta/2]$ lies inside $[q-r,q+r]$, where $p_Y\ge m$.
+Using Lemma~\ref{lem:h-deriv-bounds} and \eqref{eq:density-lower},
+\[
+  \mathbb{E}[h''_\theta(Y-\xi)]
+  \;\ge\;
+  \frac{9}{16\theta}\,\mathbb{P}\!\left(|Y-\xi|\le \frac{\theta}{2}\right)
+  \;\ge\;
+  \frac{9}{16\theta}\int_{\xi-\theta/2}^{\xi+\theta/2} p_Y(t)\,dt
+  \;\ge\;
+  \frac{9}{16\theta}\cdot m\theta
+  \;=\;\frac{9m}{16}.
+\]
+Hence $|H_\theta'(\xi)|\ge 9m/16$, and therefore
+\[
+  |\widehat s^\star-s_\theta|
+  \;=\;
+  \frac{\delta\varepsilon|\widehat s^\star|}{|H_\theta'(\xi)|}
+  \;\le\;
+  \frac{16\delta B}{9m}\,\varepsilon.
+\]
+Combining with $|s_\theta-q|\le \theta$ yields \eqref{eq:shat-q-bound}.
+\end{proof}
+
+\paragraph{Proof of Theorem~\ref{thm:sgd}.}
+\begin{proof}
+By $L$-smoothness of $\widehat F_\mu$, for any update direction $d$ we have
+\[
+  \widehat F_\mu(x_k+d)\le \widehat F_\mu(x_k) + \langle \nabla \widehat F_\mu(x_k), d\rangle + \frac{L}{2}\|d\|^2.
+\]
+With $d=-\eta g_k$, taking conditional expectation given $x_k$ and using \eqref{eq:sgd-assump},
+\begin{align*}
+  \mathbb{E}\!\left[\widehat F_\mu(x_{k+1})\mid x_k\right]
+  &\le \widehat F_\mu(x_k) - \eta \|\nabla \widehat F_\mu(x_k)\|^2 + \frac{L\eta^2}{2}\mathbb{E}\!\left[\|g_k\|^2\mid x_k\right]\\
+  &\le \widehat F_\mu(x_k) - \eta \|\nabla \widehat F_\mu(x_k)\|^2 + \frac{L\eta^2}{2}\left(\|\nabla \widehat F_\mu(x_k)\|^2+\sigma^2\right).
+\end{align*}
+Since $\eta\le 1/L$, the coefficient satisfies $\eta-\frac{L\eta^2}{2}\ge \eta/2$, hence
+\[
+  \mathbb{E}\!\left[\widehat F_\mu(x_{k+1})\mid x_k\right]
+  \le \widehat F_\mu(x_k) - \frac{\eta}{2}\|\nabla \widehat F_\mu(x_k)\|^2 + \frac{L\eta^2}{2}\sigma^2.
+\]
+Taking total expectation and summing over $k=0,\dots,K-1$ gives
+\[
+  \frac{\eta}{2}\sum_{k=0}^{K-1}\mathbb{E}\!\left[\|\nabla \widehat F_\mu(x_k)\|^2\right]
+  \le \widehat F_\mu(x_0)-\mathbb{E}[\widehat F_\mu(x_K)] + \frac{L\eta^2K}{2}\sigma^2
+  \le \widehat F_\mu(x_0)-\widehat F_\mu^{\inf} + \frac{L\eta^2K}{2}\sigma^2,
+\]
+which rearranges to \eqref{eq:sgd-rate}.
+\end{proof}
 
 \end{document}

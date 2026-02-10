@@ -1,0 +1,38 @@
+benchmark:
+  run_name: synthetic_baselines_smoke_all
+  eval_samples: 1000
+  cpp_time_limit_s: 5
+  kktbl_time_limit_s: 5
+
+  methods:
+    - Core
+    - TACO
+    - CPP-MIP
+    - CPP-KKT
+    - SA
+    - SAA
+    - KKTBL
+
+  method_params:
+    SAA:
+      omega: null
+
+  cases:
+    - id: smoke_gaussian_linear_d10_m50
+      problem:
+        kind: high_dimension
+        dim: 10
+        samples_num: 50
+        delta: 0.05
+        initial_x: zeros
+        max_iter_s: 10
+        max_iter_x: 10
+        theta: 0.1
+        epsilon: 0.001
+        lr: 0.01
+        mu: 0.01
+        abstol: 1.0e-5
+      seeds:
+        start: 0
+        count: 1
+

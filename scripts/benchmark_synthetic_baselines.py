@@ -145,12 +145,25 @@ def _run_taco(problem: Any) -> tuple[np.ndarray, float]:
     return x_final, float(wall)
 
 
-def _run_cpp(problem: Any, method: str, cpp_time_limit_s: int) -> tuple[np.ndarray | None, float, str | None]:
+def _run_cpp(
+    problem: Any,
+    method: str,
+    cpp_time_limit_s: int,
+    *,
+    omega: float | None = None,
+    robust: bool = False,
+    epsilon_kl: float | None = None,
+) -> tuple[np.ndarray | None, float, str | None]:
     import sys
 
     sys.path.insert(0, str(REPO_ROOT / "code"))
-    import cco.cpp.configuration as cpp_config  # noqa: E402
-    from cco.cpp.resources.solver import solve  # noqa: E402
+    try:
+        import cco.cpp.configuration as cpp_config  # noqa: E402
+        from cco.cpp.resources.solver import solve  # noqa: E402
+    except ModuleNotFoundError as e:
+        if e.name == "pyscipopt":
+            return None, 0.0, "missing:pyscipopt"
+        raise
 
     cpp_config.time_limit = int(cpp_time_limit_s)
 
@@ -161,8 +174,45 @@ def _run_cpp(problem: Any, method: str, cpp_time_limit_s: int) -> tuple[np.ndarr
     # No extra deterministic constraints for synthetic problems.
     hs: list[Callable[..., Any]] = []
     gs: list[Callable[..., Any]] = []
-    result, solver_time = solve(x_dim, delta, training_Ys, hs, gs, problem.cpp_chance_function, problem.cpp_objective_function, method)
+    if method == "SAA" and omega is None:
+        omega = float(delta)
+    if robust and epsilon_kl is None:
+        raise ValueError("robust CPP requires epsilon_kl")
 
+    result, solver_time = solve(
+        x_dim,
+        delta,
+        training_Ys,
+        hs,
+        gs,
+        problem.cpp_chance_function,
+        problem.cpp_objective_function,
+        method,
+        omega=omega,
+        robust=bool(robust),
+        epsilon=epsilon_kl,
+    )
+
+    if isinstance(result, str):
+        return None, float(solver_time), result
+    x_final = np.asarray(result, dtype=float).reshape(problem.dimension)
+    return x_final, float(solver_time), None
+
+
+def _run_kktbl(problem: Any, kktbl_time_limit_s: int) -> tuple[np.ndarray | None, float, str | None]:
+    import sys
+
+    sys.path.insert(0, str(REPO_ROOT / "code"))
+    try:
+        from cco.kktbl.solver import KKTBL  # noqa: E402
+    except ModuleNotFoundError as e:
+        if e.name == "pyscipopt":
+            return None, 0.0, "missing:pyscipopt"
+        raise
+
+    solver = KKTBL(problem=problem)
+    solver.time_limit = int(kktbl_time_limit_s)
+    result, solver_time = solver.solve()
     if isinstance(result, str):
         return None, float(solver_time), result
     x_final = np.asarray(result, dtype=float).reshape(problem.dimension)
@@ -197,7 +247,9 @@ def main() -> int:
 
     eval_samples = int(bench.get("eval_samples", 100000))
     cpp_time_limit_s = int(bench.get("cpp_time_limit_s", 600))
+    kktbl_time_limit_s = int(bench.get("kktbl_time_limit_s", cpp_time_limit_s))
     methods = list(bench["methods"])
+    method_params = dict(bench.get("method_params") or {})
 
     rows: list[Row] = []
 
@@ -218,15 +270,70 @@ def main() -> int:
             for method in methods:
                 status = "ok"
                 try:
+                    params = dict(method_params.get(method) or {})
                     if method == "Core":
                         x_final, wall_s = _run_core(problem)
                     elif method == "TACO":
                         x_final, wall_s = _run_taco(problem)
                     elif method in ("CPP-MIP", "CPP-KKT", "SA", "SAA"):
-                        x_final, wall_s, err = _run_cpp(problem, method, cpp_time_limit_s)
+                        x_final, wall_s, err = _run_cpp(
+                            problem,
+                            method,
+                            cpp_time_limit_s,
+                            omega=params.get("omega"),
+                            robust=bool(params.get("robust", False)),
+                            epsilon_kl=params.get("epsilon_kl"),
+                        )
                         if x_final is None:
                             status = err or "error"
                             # write placeholder row with NaNs
+                            rows.append(
+                                Row(
+                                    case_id=case_id,
+                                    method=method,
+                                    seed=seed,
+                                    objective=float("nan"),
+                                    ec=float("nan"),
+                                    fscore_ec=float("nan"),
+                                    wall_s=wall_s,
+                                    status=status,
+                                )
+                            )
+                            print(f"[{case_id}] {method} seed={seed} status={status} wall={wall_s:.2f}s")
+                            continue
+                    elif method in ("RCPP-MIP", "RCPP-KKT"):
+                        base = "CPP-MIP" if method.endswith("MIP") else "CPP-KKT"
+                        if "epsilon_kl" not in params or params.get("epsilon_kl") is None:
+                            raise ValueError(f"{method} requires method_params.{method}.epsilon_kl")
+                        x_final, wall_s, err = _run_cpp(
+                            problem,
+                            base,
+                            cpp_time_limit_s,
+                            omega=params.get("omega"),
+                            robust=True,
+                            epsilon_kl=float(params["epsilon_kl"]),
+                        )
+                        if x_final is None:
+                            status = err or "error"
+                            # write placeholder row with NaNs
+                            rows.append(
+                                Row(
+                                    case_id=case_id,
+                                    method=method,
+                                    seed=seed,
+                                    objective=float("nan"),
+                                    ec=float("nan"),
+                                    fscore_ec=float("nan"),
+                                    wall_s=wall_s,
+                                    status=status,
+                                )
+                            )
+                            print(f"[{case_id}] {method} seed={seed} status={status} wall={wall_s:.2f}s")
+                            continue
+                    elif method == "KKTBL":
+                        x_final, wall_s, err = _run_kktbl(problem, kktbl_time_limit_s)
+                        if x_final is None:
+                            status = err or "error"
                             rows.append(
                                 Row(
                                     case_id=case_id,
@@ -263,7 +370,10 @@ def main() -> int:
                     )
                     print(f"[{case_id}] {method} seed={seed} obj={obj:.4g} ec={ec:.3f} f={fscore:.3f} wall={wall_s:.2f}s")
                 except Exception as e:
-                    status = f"exception:{type(e).__name__}"
+                    if isinstance(e, ModuleNotFoundError) and getattr(e, "name", None):
+                        status = f"missing:{e.name}"
+                    else:
+                        status = f"exception:{type(e).__name__}"
                     rows.append(
                         Row(
                             case_id=case_id,
@@ -342,4 +452,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

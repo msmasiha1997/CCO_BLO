@@ -19,7 +19,6 @@ from cco.utils import *
 from cco.utils.plotting import *
 from cco.utils.file_utils import *
 from cco.utils.eval import *
-from cco.cpp.resources.solver import solve
 
 
 base_dir = "output/data/"
@@ -285,10 +284,22 @@ def run_taco(
 def run_cpp(
     problem: Problem,
     method: str = "CPP-MIP",
+    omega: float | None = None,
+    robust: bool = False,
+    epsilon_kl: float | None = None,
     ec_samples_num: int = 100000,
     verbose: bool = True,
     save_path: str = None,
 ) -> tuple[np.ndarray, np.ndarray, float]:
+    try:
+        from cco.cpp.resources.solver import solve
+    except ModuleNotFoundError as e:
+        if e.name == "pyscipopt":
+            raise ModuleNotFoundError(
+                "CPP baselines require pyscipopt. Install requirements-baselines.txt."
+            ) from e
+        raise
+
     J = problem.cpp_objective_function
     J_value = problem.f_function
     f = problem.cpp_chance_function
@@ -298,7 +309,23 @@ def run_cpp(
     gs = []
     hs = []
     training_Ys = problem.z_samples()
-    result, solver_time = solve(x_dim, delta, training_Ys, hs, gs, f, J, method)
+    if method == "SAA" and omega is None:
+        omega = float(delta)
+    if robust and epsilon_kl is None:
+        raise ValueError("robust CPP requires epsilon_kl")
+    result, solver_time = solve(
+        x_dim,
+        delta,
+        training_Ys,
+        hs,
+        gs,
+        f,
+        J,
+        method,
+        omega=omega,
+        robust=bool(robust),
+        epsilon=epsilon_kl,
+    )
 
     # print("cpp result =")
     # print(result)

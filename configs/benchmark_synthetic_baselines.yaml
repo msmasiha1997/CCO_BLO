@@ -7,6 +7,8 @@ benchmark:
 
   # Time limit in seconds for SCIP (CPP-* baselines).
   cpp_time_limit_s: 600
+  # Time limit in seconds for KKTBL (nonlinear baseline).
+  kktbl_time_limit_s: 600
 
   methods:
     - Core
@@ -15,6 +17,13 @@ benchmark:
     - CPP-KKT
     - SA
     - SAA
+    - KKTBL
+
+  # Optional per-method knobs. If omitted, script uses sensible defaults.
+  # - For SAA, omega defaults to delta if not provided.
+  method_params:
+    SAA:
+      omega: null
 
   cases:
     - id: example1_cpp_problem_m500_delta0p10
@@ -87,4 +96,3 @@ benchmark:
       seeds:
         start: 0
         count: 30
-
