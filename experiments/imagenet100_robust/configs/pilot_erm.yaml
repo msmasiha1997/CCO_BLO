@@ -1,0 +1,25 @@
+run_name: imagenet100_pilot_erm
+seed: 0
+
+data:
+  num_classes: 100
+  image_size: 224
+  batch_size: 128
+  num_workers: 8
+
+train:
+  epochs: 10
+  optimizer: sgd
+  lr: 0.1
+  momentum: 0.9
+  weight_decay: 0.0001
+  amp: true
+
+method:
+  name: erm
+  params: {}
+
+corruptions:
+  severity_min: 1
+  severity_max: 5
+

@@ -1,0 +1,56 @@
+benchmark:
+  run_name: synthetic_core_taco_probe
+  eval_samples: 10000
+  cpp_time_limit_s: 5
+  kktbl_time_limit_s: 5
+
+  methods:
+    - Core
+    - TACO
+
+  cases:
+    - id: probe_hd_d30_m100_delta0p05
+      problem:
+        kind: high_dimension
+        dim: 30
+        samples_num: 100
+        delta: 0.05
+        initial_x: zeros
+        max_iter_s: 60
+        max_iter_x: 80
+        theta: 0.1
+        epsilon: 0.001
+        lr: 0.008
+        mu: 0.01
+        mu_schedule: geom
+        mu_final: 0.002
+        inner_solver: bisect
+        inner_tol: 1.0e-8
+        grad_clip: 20.0
+        abstol: 1.0e-5
+      seeds:
+        start: 0
+        count: 5
+
+    - id: probe_hd_d100_m100_delta0p05
+      problem:
+        kind: high_dimension
+        dim: 100
+        samples_num: 100
+        delta: 0.05
+        initial_x: zeros
+        max_iter_s: 80
+        max_iter_x: 120
+        theta: 0.1
+        epsilon: 0.001
+        lr: 0.005
+        mu: 0.01
+        mu_schedule: geom
+        mu_final: 0.002
+        inner_solver: bisect
+        inner_tol: 1.0e-8
+        grad_clip: 40.0
+        abstol: 1.0e-5
+      seeds:
+        start: 0
+        count: 5

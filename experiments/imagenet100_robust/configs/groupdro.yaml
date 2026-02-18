@@ -1,0 +1,27 @@
+run_name: imagenet100_groupdro
+seed: 0
+
+data:
+  num_classes: 100
+  image_size: 224
+  batch_size: 64
+  num_workers: 4
+
+train:
+  epochs: 90
+  optimizer: sgd
+  lr: 0.1
+  momentum: 0.9
+  weight_decay: 0.0001
+  amp: true
+
+method:
+  name: groupdro
+  params:
+    groups: [noise, blur, weather, digital]
+    eta: 0.05
+
+corruptions:
+  severity_min: 1
+  severity_max: 5
+

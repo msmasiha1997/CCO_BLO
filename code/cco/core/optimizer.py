@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import sys
 import os
 import torch
@@ -31,12 +33,26 @@ class Optimizer:
         self.zo_double_evaluation = False if problem.dimension == (1,) else True
 
         self.z_samples = self.problem.z_samples()
-        self.objective_grad = lambda x: self.oracle.x_partial_F_function(
-            x=x, min_s=self.minimize_s(x=x, initial_s=0), z_samples=self.z_samples
-        )
+        self.inner_solver = str(getattr(self.problem, "inner_solver", "bisect"))
+        self.inner_tol = float(getattr(self.problem, "inner_tol", 1e-8))
+        self.mu_schedule = str(getattr(self.problem, "mu_schedule", "constant"))
+        self.mu_final = getattr(self.problem, "mu_final", None)
+        self.feasible_selection = bool(getattr(self.problem, "feasible_selection", True))
+        self.feasible_repair = bool(getattr(self.problem, "feasible_repair", True))
+        self.feasible_tol = float(getattr(self.problem, "feasible_tol", 0.0))
+        self.repair_steps = int(getattr(self.problem, "repair_steps", 25))
+        target_default = 1.0 - float(self.problem.delta)
+        self.feasible_target = float(getattr(self.problem, "feasible_target", target_default))
+        self.feasible_target = float(np.clip(self.feasible_target, 0.0, 1.0))
+
+        self._last_s: float = 0.0
+        self._grad_calls: int = 0
+        self.objective_grad = self._objective_grad
 
     def run(self) -> np.ndarray:
         # TODO: samples management
+        self._last_s = 0.0
+        self._grad_calls = 0
 
         final_x, x_history = self.Adam(
             initial_x=self.problem.initial_x,
@@ -55,8 +71,111 @@ class Optimizer:
         self.x_history = x_history
         return final_x
 
+    def _mu_at(self, step: int) -> float:
+        mu0 = float(self.problem.mu)
+        if self.mu_final is None or self.mu_schedule == "constant" or self.problem.max_iter_x <= 1:
+            return mu0
+        muf = float(self.mu_final)
+        if self.mu_schedule == "linear":
+            t = step / max(1, self.problem.max_iter_x - 1)
+            return float(mu0 + t * (muf - mu0))
+        if self.mu_schedule == "geom":
+            if mu0 <= 0 or muf <= 0:
+                return mu0
+            t = step / max(1, self.problem.max_iter_x - 1)
+            return float(mu0 * ((muf / mu0) ** t))
+        return mu0
+
+    def _objective_grad(self, x: np.ndarray) -> np.ndarray:
+        min_s = float(self.minimize_s(x=x, initial_s=self._last_s))
+        self._last_s = min_s
+        mu_k = self._mu_at(self._grad_calls)
+        self._grad_calls += 1
+        return self.oracle.x_partial_F_function(
+            x=x,
+            min_s=min_s,
+            z_samples=self.z_samples,
+            mu=mu_k,
+        )
+
+    def _train_ec(self, x: np.ndarray) -> float:
+        x_arr = np.asarray(x, dtype=float).reshape(self.problem.dimension)
+        chance_values = np.asarray(
+            self.problem.chance_function(x_arr, self.z_samples), dtype=float
+        ).reshape(-1)
+        if chance_values.size == 0:
+            return 0.0
+        return float(np.mean(chance_values <= 0.0))
+
+    def _is_feasible_ec(self, ec: float) -> bool:
+        return bool(ec >= (self.feasible_target - self.feasible_tol))
+
+    def _repair_to_feasible(self, x_infeasible: np.ndarray, x_feasible: np.ndarray) -> np.ndarray:
+        x_bad = np.asarray(x_infeasible, dtype=float).reshape(self.problem.dimension)
+        x_safe = np.asarray(x_feasible, dtype=float).reshape(self.problem.dimension)
+        if self._is_feasible_ec(self._train_ec(x_bad)):
+            return x_bad
+        if not self._is_feasible_ec(self._train_ec(x_safe)):
+            return x_safe
+
+        lo = 0.0
+        hi = 1.0
+        grid = np.linspace(0.0, 1.0, num=11)
+        for i in range(1, len(grid)):
+            alpha = float(grid[i])
+            cand = (1.0 - alpha) * x_bad + alpha * x_safe
+            if self._is_feasible_ec(self._train_ec(cand)):
+                hi = alpha
+                lo = float(grid[i - 1])
+                break
+
+        best = (1.0 - hi) * x_bad + hi * x_safe
+        for _ in range(max(5, self.repair_steps)):
+            mid = 0.5 * (lo + hi)
+            cand = (1.0 - mid) * x_bad + mid * x_safe
+            if self._is_feasible_ec(self._train_ec(cand)):
+                best = cand
+                hi = mid
+            else:
+                lo = mid
+
+        return best
+
+    def _select_outer_solution(
+        self,
+        x_final: np.ndarray,
+        best_feasible_x: np.ndarray | None,
+        best_feasible_obj: float,
+        repair_anchor_x: np.ndarray | None,
+    ) -> np.ndarray:
+        x_selected = np.asarray(x_final, dtype=float).reshape(self.problem.dimension)
+        candidates: list[tuple[float, np.ndarray]] = []
+
+        ec_final = self._train_ec(x_selected)
+        if self._is_feasible_ec(ec_final):
+            candidates.append((float(self.problem.f_function(x_selected)), x_selected.copy()))
+
+        if best_feasible_x is not None and np.isfinite(best_feasible_obj):
+            candidates.append((float(best_feasible_obj), best_feasible_x.copy()))
+
+        if (
+            self.feasible_repair
+            and repair_anchor_x is not None
+            and not self._is_feasible_ec(ec_final)
+        ):
+            repaired = self._repair_to_feasible(x_selected, repair_anchor_x)
+            ec_repaired = self._train_ec(repaired)
+            if self._is_feasible_ec(ec_repaired):
+                candidates.append((float(self.problem.f_function(repaired)), repaired.copy()))
+
+        if not candidates:
+            return x_selected
+        candidates.sort(key=lambda pair: pair[0])
+        return candidates[0][1]
+
     def minimize_s(self, x: np.ndarray, initial_s: float):
-        initial_s = 0
+        if self.inner_solver == "bisect":
+            return self._minimize_s_bisect(x=x, initial_s=initial_s)
         final_s, _ = self.Adam(
             initial_x=initial_s,
             grad_func=lambda s: self.oracle.s_partial_G_function(
@@ -72,7 +191,49 @@ class Optimizer:
             use_torch=False,
             outer=False,
         )
-        return final_s
+        return float(np.asarray(final_s).reshape(-1)[0])
+
+    def _minimize_s_bisect(self, x: np.ndarray, initial_s: float) -> float:
+        gvals = np.asarray(self.problem.chance_function(x, self.z_samples), dtype=float).reshape(-1)
+        if gvals.size == 0:
+            return float(initial_s)
+
+        def dG_ds(s: float) -> float:
+            chance_values = gvals - float(s)
+            expected_estimation = np.mean(self.problem.partial_h_function(chance_values))
+            return float(1.0 - expected_estimation / float(self.problem.delta) + float(self.problem.epsilon) * float(s))
+
+        span = max(1.0, float(np.max(np.abs(gvals))), abs(float(initial_s)))
+        lo = float(np.min(gvals) - span)
+        hi = float(np.max(gvals) + span)
+        d_lo = dG_ds(lo)
+        d_hi = dG_ds(hi)
+
+        for _ in range(60):
+            if d_lo <= 0.0 and d_hi >= 0.0:
+                break
+            width = max(1.0, hi - lo)
+            if d_lo > 0.0:
+                lo -= 2.0 * width
+                d_lo = dG_ds(lo)
+            if d_hi < 0.0:
+                hi += 2.0 * width
+                d_hi = dG_ds(hi)
+        else:
+            return float(initial_s)
+
+        iters = max(20, int(self.problem.max_iter_s))
+        for _ in range(iters):
+            mid = 0.5 * (lo + hi)
+            d_mid = dG_ds(mid)
+            if d_mid <= 0.0:
+                lo = mid
+            else:
+                hi = mid
+            if (hi - lo) <= self.inner_tol:
+                break
+
+        return float(0.5 * (lo + hi))
 
     def torch_SGD(
         self,
@@ -196,6 +357,16 @@ class Optimizer:
         if history:
             x_history = [x]
 
+        best_feasible_x = None
+        best_feasible_obj = float("inf")
+        repair_anchor_x = None
+        if outer and self.feasible_selection:
+            ec0 = self._train_ec(x)
+            if self._is_feasible_ec(ec0):
+                best_feasible_x = x.copy()
+                best_feasible_obj = float(self.problem.f_function(x))
+                repair_anchor_x = x.copy()
+
         for t in tqdm(range(1, max_iter + 1), disable=not enable_tqdm):
             prev_x = x.copy()
             gradient = grad_func(x)
@@ -229,11 +400,31 @@ class Optimizer:
             if history:
                 x_history.append(x)
 
+            if outer and self.feasible_selection:
+                ec_x = self._train_ec(x)
+                if self._is_feasible_ec(ec_x):
+                    obj_x = float(self.problem.f_function(x))
+                    if obj_x < best_feasible_obj:
+                        best_feasible_obj = obj_x
+                        best_feasible_x = x.copy()
+                    repair_anchor_x = x.copy()
+
             # early stopping if requested (based on parameter change)
             if abstol is not None and np.linalg.norm(x - prev_x) < abstol:
                 # if outer:
                 #     print(f"\nConverged in {t} iterations.")
                 break
+
+        if outer and self.feasible_selection:
+            selected_x = self._select_outer_solution(
+                x_final=x,
+                best_feasible_x=best_feasible_x,
+                best_feasible_obj=best_feasible_obj,
+                repair_anchor_x=repair_anchor_x,
+            )
+            if history and np.linalg.norm(selected_x - x) > 0:
+                x_history.append(selected_x.copy())
+            x = selected_x
 
         return (x, np.array(x_history)) if history else (x, None)
 

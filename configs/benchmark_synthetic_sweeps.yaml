@@ -10,6 +10,7 @@ benchmark:
 
   methods:
     - Core
+    - CVaR
     - TACO
     - CPP-MIP
     - CPP-KKT
@@ -58,6 +59,11 @@ benchmark:
         epsilon: 0.001
         lr: 0.01
         mu: 0.01
+        mu_schedule: geom
+        mu_final: 0.002
+        inner_solver: bisect
+        inner_tol: 1.0e-8
+        grad_clip: 20.0
         abstol: 1.0e-5
       seeds:
         start: 0
@@ -76,6 +82,11 @@ benchmark:
         epsilon: 0.001
         lr: 0.008
         mu: 0.01
+        mu_schedule: geom
+        mu_final: 0.002
+        inner_solver: bisect
+        inner_tol: 1.0e-8
+        grad_clip: 20.0
         abstol: 1.0e-5
       seeds:
         start: 0
@@ -94,6 +105,11 @@ benchmark:
         epsilon: 0.001
         lr: 0.005
         mu: 0.01
+        mu_schedule: geom
+        mu_final: 0.002
+        inner_solver: bisect
+        inner_tol: 1.0e-8
+        grad_clip: 40.0
         abstol: 1.0e-5
       seeds:
         start: 0
@@ -115,6 +131,11 @@ benchmark:
         epsilon: 0.001
         lr: 0.008
         mu: 0.01
+        mu_schedule: geom
+        mu_final: 0.002
+        inner_solver: bisect
+        inner_tol: 1.0e-8
+        grad_clip: 20.0
         abstol: 1.0e-5
       seeds:
         start: 0
@@ -133,6 +154,11 @@ benchmark:
         epsilon: 0.001
         lr: 0.008
         mu: 0.01
+        mu_schedule: geom
+        mu_final: 0.002
+        inner_solver: bisect
+        inner_tol: 1.0e-8
+        grad_clip: 20.0
         abstol: 1.0e-5
       seeds:
         start: 0
@@ -154,6 +180,11 @@ benchmark:
         epsilon: 0.001
         lr: 0.008
         mu: 0.01
+        mu_schedule: geom
+        mu_final: 0.001
+        inner_solver: bisect
+        inner_tol: 1.0e-8
+        grad_clip: 20.0
         abstol: 1.0e-5
       seeds:
         start: 0
@@ -172,6 +203,11 @@ benchmark:
         epsilon: 0.001
         lr: 0.008
         mu: 0.01
+        mu_schedule: geom
+        mu_final: 0.003
+        inner_solver: bisect
+        inner_tol: 1.0e-8
+        grad_clip: 20.0
         abstol: 1.0e-5
       seeds:
         start: 0

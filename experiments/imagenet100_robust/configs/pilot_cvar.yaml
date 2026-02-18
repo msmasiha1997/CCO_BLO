@@ -1,0 +1,29 @@
+run_name: imagenet100_pilot_cvar
+seed: 0
+
+data:
+  num_classes: 100
+  image_size: 224
+  batch_size: 128
+  num_workers: 8
+
+train:
+  epochs: 10
+  optimizer: sgd
+  lr: 0.1
+  momentum: 0.9
+  weight_decay: 0.0001
+  amp: false
+  grad_clip_norm: 1.0
+
+method:
+  name: cvar
+  params:
+    alpha: 0.1
+    tail_weight: 1.0
+    clean_weight: 1.0
+    skip_nonfinite: true
+
+corruptions:
+  severity_min: 1
+  severity_max: 5

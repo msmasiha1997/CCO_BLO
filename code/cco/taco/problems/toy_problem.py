@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from cco.problems.problem import Problem
 
 import numpy as np
@@ -19,4 +21,3 @@ class ToyProblem():
 
     def constraint_grad(self, x: np.ndarray, z: float | np.ndarray):
         return self.problem.partial_chance_function(x, z)
-

@@ -1,0 +1,41 @@
+benchmark:
+  run_name: synthetic_cpp_problem_100s
+
+  # Empirical coverage estimation uses this many samples per run.
+  eval_samples: 5000
+
+  # Time limits (seconds) for solver-based baselines.
+  cpp_time_limit_s: 100
+  kktbl_time_limit_s: 100
+
+  methods:
+    - Core
+    - CVaR
+    - TACO
+    - CPP-MIP
+    - CPP-KKT
+    - SA
+    - SAA
+    - KKTBL
+
+  method_params:
+    SAA:
+      omega: null
+
+  cases:
+    - id: cpp_problem_m500_delta0p10
+      problem:
+        kind: cpp_problem
+        samples_num: 500
+        delta: 0.10
+        initial_x: -4.0
+        max_iter_s: 50
+        max_iter_x: 80
+        theta: 0.09
+        epsilon: 0.01
+        lr: 0.007
+        mu: 0.005
+        abstol: 1.0e-5
+      seeds:
+        start: 0
+        count: 2

@@ -1,0 +1,30 @@
+benchmark:
+  run_name: cpp_problem_quick_cvar_only
+
+  eval_samples: 5000
+
+  # Not used (no solver-based baselines enabled) but kept for completeness.
+  cpp_time_limit_s: 10
+  kktbl_time_limit_s: 10
+
+  methods:
+    - CVaR
+
+  cases:
+    - id: quick_example1_cpp_problem_m500_delta0p10
+      problem:
+        kind: cpp_problem
+        samples_num: 500
+        delta: 0.10
+        initial_x: -4.0
+        max_iter_s: 50
+        max_iter_x: 80
+        theta: 0.09
+        epsilon: 0.01
+        lr: 0.007
+        mu: 0.005
+        abstol: 1.0e-5
+      seeds:
+        start: 0
+        count: 2
+

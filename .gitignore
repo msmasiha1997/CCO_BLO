@@ -33,6 +33,7 @@ paper/**/cco_blo.pdf
 
 # OS/editor
 **/.DS_Store
+**/.vscode/
 
 # HPC logs
 slurm/

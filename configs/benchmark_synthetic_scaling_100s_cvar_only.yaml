@@ -1,0 +1,174 @@
+benchmark:
+  run_name: synthetic_scaling_100s_cvar_only
+
+  eval_samples: 5000
+
+  # Not used (no solver-based baselines enabled) but kept for completeness.
+  cpp_time_limit_s: 100
+  kktbl_time_limit_s: 100
+
+  methods:
+    - CVaR
+
+  cases:
+    - id: hd_d10_m100_delta0p05
+      problem:
+        kind: high_dimension
+        dim: 10
+        samples_num: 100
+        delta: 0.05
+        initial_x: zeros
+        max_iter_s: 50
+        max_iter_x: 80
+        theta: 0.1
+        epsilon: 0.001
+        lr: 0.01
+        mu: 0.01
+        mu_schedule: geom
+        mu_final: 0.002
+        inner_solver: bisect
+        inner_tol: 1.0e-8
+        grad_clip: 20.0
+        abstol: 1.0e-5
+      seeds:
+        start: 0
+        count: 2
+
+    - id: hd_d30_m100_delta0p05
+      problem:
+        kind: high_dimension
+        dim: 30
+        samples_num: 100
+        delta: 0.05
+        initial_x: zeros
+        max_iter_s: 50
+        max_iter_x: 80
+        theta: 0.1
+        epsilon: 0.001
+        lr: 0.008
+        mu: 0.01
+        mu_schedule: geom
+        mu_final: 0.002
+        inner_solver: bisect
+        inner_tol: 1.0e-8
+        grad_clip: 20.0
+        abstol: 1.0e-5
+      seeds:
+        start: 0
+        count: 2
+
+    - id: hd_d100_m100_delta0p05
+      problem:
+        kind: high_dimension
+        dim: 100
+        samples_num: 100
+        delta: 0.05
+        initial_x: zeros
+        max_iter_s: 60
+        max_iter_x: 100
+        theta: 0.1
+        epsilon: 0.001
+        lr: 0.005
+        mu: 0.01
+        mu_schedule: geom
+        mu_final: 0.002
+        inner_solver: bisect
+        inner_tol: 1.0e-8
+        grad_clip: 40.0
+        abstol: 1.0e-5
+      seeds:
+        start: 0
+        count: 2
+
+    - id: hd_d30_m250_delta0p05
+      problem:
+        kind: high_dimension
+        dim: 30
+        samples_num: 250
+        delta: 0.05
+        initial_x: zeros
+        max_iter_s: 50
+        max_iter_x: 80
+        theta: 0.1
+        epsilon: 0.001
+        lr: 0.008
+        mu: 0.01
+        mu_schedule: geom
+        mu_final: 0.002
+        inner_solver: bisect
+        inner_tol: 1.0e-8
+        grad_clip: 20.0
+        abstol: 1.0e-5
+      seeds:
+        start: 0
+        count: 2
+
+    - id: hd_d30_m500_delta0p05
+      problem:
+        kind: high_dimension
+        dim: 30
+        samples_num: 500
+        delta: 0.05
+        initial_x: zeros
+        max_iter_s: 50
+        max_iter_x: 80
+        theta: 0.1
+        epsilon: 0.001
+        lr: 0.008
+        mu: 0.01
+        mu_schedule: geom
+        mu_final: 0.002
+        inner_solver: bisect
+        inner_tol: 1.0e-8
+        grad_clip: 20.0
+        abstol: 1.0e-5
+      seeds:
+        start: 0
+        count: 2
+
+    - id: hd_d30_m100_delta0p01
+      problem:
+        kind: high_dimension
+        dim: 30
+        samples_num: 100
+        delta: 0.01
+        initial_x: zeros
+        max_iter_s: 60
+        max_iter_x: 100
+        theta: 0.1
+        epsilon: 0.001
+        lr: 0.008
+        mu: 0.01
+        mu_schedule: geom
+        mu_final: 0.001
+        inner_solver: bisect
+        inner_tol: 1.0e-8
+        grad_clip: 20.0
+        abstol: 1.0e-5
+      seeds:
+        start: 0
+        count: 2
+
+    - id: hd_d30_m100_delta0p10
+      problem:
+        kind: high_dimension
+        dim: 30
+        samples_num: 100
+        delta: 0.10
+        initial_x: zeros
+        max_iter_s: 50
+        max_iter_x: 80
+        theta: 0.1
+        epsilon: 0.001
+        lr: 0.008
+        mu: 0.01
+        mu_schedule: geom
+        mu_final: 0.003
+        inner_solver: bisect
+        inner_tol: 1.0e-8
+        grad_clip: 20.0
+        abstol: 1.0e-5
+      seeds:
+        start: 0
+        count: 2
+

@@ -12,6 +12,7 @@
 \usepackage{algorithm}
 \usepackage{algpseudocode}
 \usepackage{xcolor}
+\usepackage{graphicx}
 \usepackage{hyperref}
 
 % Optional: use existing macro collections from the template repo.
@@ -36,6 +37,7 @@
 \newtheorem{proposition}{Proposition}
 \theoremstyle{definition}
 \newtheorem{definition}{Definition}
+\newtheorem{assumption}{Assumption}
 
 % === Notation shortcuts ===
 \newcommand{\ReLU}{\operatorname{ReLU}}
@@ -55,39 +57,48 @@
 
 \begin{abstract}
 Modern AI systems must optimize performance while controlling the probability of rare but consequential failures induced by stochasticity (noise, corruptions, distribution shift, or uncertain dynamics). Chance-constrained optimization provides a direct formalism for this goal, but is computationally challenging due to non-smooth quantile constraints and poor scaling with dimension and sample size.
-We present a bilevel approach that reduces the chance constraint to a scalar inner problem via a superquantile variational characterization, then differentiates through the inner argmin using hypergradients. We combine a smooth strongly-convex surrogate for the inner objective with an augmented-Lagrangian-style penalty to obtain an end-to-end differentiable outer objective suitable for large-scale gradient methods.
+We present \emph{Augmented Hypergradient CCO} (AH-CCO), a bilevel approach that reduces the chance constraint to a scalar inner problem via a superquantile variational characterization, then differentiates through the inner argmin using hypergradients. We combine a smooth strongly-convex surrogate for the inner objective with an augmented-Lagrangian-style penalty to obtain an end-to-end differentiable outer objective suitable for large-scale gradient methods.
 We provide conditions under which the solution map is differentiable, derive an efficient gradient formula, and discuss approximation and optimization trade-offs. Experiments on standard synthetic benchmarks compare our method to TACO and conformal prediction based baselines and evaluate objective quality, reliability (empirical coverage), and runtime, including an additional coverage F-score metric.
 \end{abstract}
 
 \section{Introduction}\label{sec:intro}
-\plan{
-\begin{itemize}
-  \item Motivate reliability in modern AI: robotics, perception under corruptions, safe decision-making.
-  \item State the core problem: optimize utility subject to failure probability $\le \delta$.
-  \item Explain why this is hard: quantiles, non-smoothness, sample-based combinatorics, scaling with $d$ and $M$.
-  \item High-level idea: quantile $\rightarrow$ scalar bilevel $\rightarrow$ implicit differentiation $\rightarrow$ SGD-friendly objective.
-  \item Contributions list (bullets) and preview experiments.
-\end{itemize}
-}
+Many modern systems are deployed in regimes where \emph{average} performance is not the only objective: a small probability of failure under randomness, noise, corruptions, or distribution shift can dominate real-world risk.
+Chance-constrained optimization (CCO) provides a direct formalism for designing such reliability-aware solutions and has long been studied in stochastic programming \citep{prekopa1995stochastic,shapiro2009lectures}:
+\begin{equation}\label{eq:intro-cco}
+  \min_{x\in\Xc} f(x)
+  \quad\text{s.t.}\quad
+  \mathbb{P}\!\left(g(x,Z)\le 0\right)\ge 1-\delta.
+\end{equation}
+Here $x\in\mathbb{R}^d$ is the decision variable constrained to a feasible set $\Xc$, $f:\mathbb{R}^d\to\mathbb{R}$ is the objective, and $g:\mathbb{R}^d\times\mathbb{R}^m\to\mathbb{R}$ is a (possibly nonconvex) constraint function evaluated under a random vector $Z\sim P_Z$.
+The safety level $\delta\in(0,1)$ controls the allowed violation probability.
 
-We study chance-constrained optimization (CCO), a framework for optimizing an objective while ensuring that constraint violations occur with probability at most $\delta$.
-Such constraints naturally arise in modern AI systems that operate under uncertainty: a perception model must remain confident under random corruptions; a robot must avoid collisions under noisy sensing; and a policy must satisfy safety constraints under stochastic dynamics.
+Despite its conceptual clarity, CCO remains challenging at scale.
+The feasibility event in \eqref{eq:intro-cco} is governed by a \emph{quantile} of the random variable $g(x,Z)$, which makes the constraint non-smooth and typically non-convex in $x$.
+As a result, classical sample-based encodings can become computationally prohibitive as the decision dimension and sample size grow.
+Recent work has proposed principled alternatives, including conservative CVaR surrogates \citep{rockafellaruryasev2000cvar}, a bilevel convex-optimization viewpoint and bundle-based algorithms \citep{laguelmalickackooij2021bilevel}, and solver-based conformal encodings with statistical guarantees \citep{zhao2024conformal}.
+However, these approaches often trade scalability, objective quality, and reliability in different ways.
 
-The main obstacle is that chance constraints are governed by quantiles of random variables, leading to non-smooth, typically non-convex feasible sets and optimization objectives that are difficult to differentiate and scale.
-Sample-based encodings (e.g., mixed-integer formulations) and conformal-prediction-based methods can be effective on small problems but may struggle as the decision dimension or sample size grows.
+We propose \emph{Augmented Hypergradient CCO} (AH-CCO), a bilevel hypergradient method designed for high-dimensional CCO with sample access.
+Our starting point is a variational characterization that introduces a \emph{scalar} inner variable representing a quantile/superquantile threshold.
+We then (i) smooth this inner objective to obtain a unique inner minimizer and a differentiable solution map, and (ii) differentiate through the inner argmin using implicit hypergradients, following the modern bilevel-optimization toolkit \citep{pedregosa2016hyperparameter,franceschi2018bilevel,ji2021bilevel}.
+Finally, we couple the resulting differentiable surrogate with an augmented-Lagrangian-style penalty, yielding an end-to-end objective amenable to stochastic gradient methods even when the inner problem is solved only approximately (as in practical hypergradient methods \citep{chen2024finding}).
+Concretely, each iteration performs a warm-started one-dimensional bisection solve for the inner variable (Algorithm~\ref{alg:inner-bisect}) and then takes an outer gradient step in $x$ using the resulting implicit hypergradient (Algorithm~\ref{alg:ahcco}).
 
 \paragraph{Contributions.}
 \begin{itemize}
-  \item We formulate CCO as a bilevel problem using a quantile characterization and a superquantile (CVaR) variational representation.
-  \item We introduce a smooth, strongly convex surrogate that yields a differentiable solution map and enables hypergradient computation.
-  \item We combine this with an augmented-Lagrangian-style penalty to obtain a differentiable outer objective and a practical stochastic optimization algorithm.
-  \item We benchmark against TACO and conformal prediction based solvers on synthetic problems and report objective value, empirical coverage, runtime, and a coverage F-score.
+  \item \textbf{Algorithm.} We introduce AH-CCO, a two-loop stochastic bilevel method: an inner one-dimensional solve (bisection) computes a smoothed quantile proxy and an outer gradient step updates $x$ using an implicit hypergradient, with an augmented penalty to enforce feasibility.
+  \item \textbf{Theory.} We provide sufficient conditions for differentiability of the inner solution map, derive an efficient gradient expression, and analyze the effect of inexact inner solves and minibatch sampling on the outer optimization.
+  \item \textbf{Experiments.} We provide a unified benchmark across diverse CCO baselines---including TACO \citep{laguelmalickackooij2021bilevel}, conformal predictive programming solvers \citep{zhao2024conformal}, and CVaR-penalty surrogates \citep{rockafellaruryasev2000cvar}---and study dimension/sample/safety scaling on synthetic tasks using reliability-aware metrics.
+  We also evaluate a data-driven robustness application on ImageNet-100 under common corruptions \citep{deng2009imagenet,hendrycks2019benchmarking}, comparing against practical baselines such as AugMix, TRADES, CVaR, and GroupDRO \citep{hendrycks2020augmix,zhang2019theoretically,rockafellaruryasev2000cvar,sagawa2020distributionally}.
 \end{itemize}
+
+Empirically, AH-CCO achieves consistently high reliability across dimension/sample/safety sweeps on synthetic CCO benchmarks while remaining computationally lightweight compared to solver-based conformal encodings.
+On ImageNet-100 corruption robustness, AH-CCO improves the joint accuracy--reliability profile relative to widely-used practical baselines (Table~\ref{tab:imagenet100-main}, Figures~\ref{fig:imagenet100-acc}--\ref{fig:imagenet100-fec}).
 
 \section{Problem Setup}\label{sec:setup}
 \subsection{Chance-Constrained Optimization}
-Let $\Xc\subseteq \mathbb{R}^d$ be a nonempty closed convex set, $Z\sim P_Z$ a random vector on $\mathbb{R}^m$, $f:\mathbb{R}^d\to\mathbb{R}$ an objective, and $g:\mathbb{R}^d\times\mathbb{R}^m\to\mathbb{R}$ a (random) constraint function.
-We study the chance-constrained optimization problem
+Let $\Xc\subseteq \mathbb{R}^d$ be a nonempty closed convex set, let $Z\sim P_Z$ be a random vector on $\mathbb{R}^m$, let $f:\mathbb{R}^d\to\mathbb{R}$ be an objective, and let $g:\mathbb{R}^d\times\mathbb{R}^m\to\mathbb{R}$ be a (random) constraint function.
+We study the chance-constrained optimization (CCO) problem
 \begin{align}
   \min_{x\in \Xc}\; & f(x)\label{eq:cco}\\
   \text{s.t.}\; & \mathbb{P}\big(g(x,Z)\le 0\big)\ge 1-\delta,\nonumber
@@ -95,26 +106,24 @@ We study the chance-constrained optimization problem
 where $\delta\in(0,1)$ controls the maximum acceptable probability of violation.
 Equivalently, the violation probability satisfies $\mathbb{P}(g(x,Z)>0)\le \delta$.
 
-\paragraph{Convexity.}
-Throughout, we assume $f$ is convex and (sub)gradient-accessible.
-Moreover, for every $z$, the map $x\mapsto g(x,z)$ is convex (and typically differentiable), and $\Xc$ is convex so that projection or proximal steps are well-defined.
-Importantly, even under these convexity assumptions, the feasible set
+The chance constraint is governed by a quantile of the random variable $g(x,Z)$.
+As a result, the feasible set
 \[
   \{x\in\Xc:\mathbb{P}(g(x,Z)\le 0)\ge 1-\delta\}
 \]
-is generally \emph{not} convex because it is defined through a quantile of the random variable $g(x,Z)$.
-This non-smooth, nonconvex geometry is a major source of algorithmic difficulty.
+is generally \emph{not} convex, even when $f$ and $g(\cdot,z)$ are convex.
+Moreover, naive sample-based encodings are combinatorial and scale poorly with dimension and sample size.
+Sections~\ref{sec:background}--\ref{sec:method} address these issues by (i) reformulating the chance constraint as a scalar bilevel problem via quantiles/superquantiles and (ii) introducing a smooth, strongly convex surrogate that enables implicit differentiation and scalable stochastic optimization.
 
 \subsection{Access Model and Sampling}
-We do not assume closed-form knowledge of $P_Z$.
+We do not assume closed-form access to $P_Z$.
 Instead, we assume access to i.i.d.\ samples $z^{(1)},\dots,z^{(M)}\sim P_Z$, which is the standard setting in data-driven optimization and learning.
-In experiments, we distinguish:
-\begin{itemize}
-  \item \emph{Training samples} used internally by an algorithm (e.g., to approximate expectations or quantiles).
-  \item \emph{Evaluation samples} used only to estimate out-of-sample reliability.
-\end{itemize}
 
-\subsection{Empirical Coverage (Reliability Metric)}
+All methods we consider ultimately operate on finite samples, either by replacing expectations with sample averages or by solving a deterministic encoding of the sampled chance constraint.
+To enable meaningful comparisons and out-of-sample evaluation, we explicitly separate \emph{training samples} (used by the algorithms) from \emph{evaluation samples} (used only for reporting).
+The concrete experimental protocol (including how we draw and reuse training/evaluation samples for fair comparisons) is described in Section~\ref{sec:experiments}.
+
+\paragraph{Empirical Coverage (Reliability Metric)}
 For a candidate solution $x$, we measure reliability via the \emph{empirical coverage} computed on fresh i.i.d.\ samples $\tilde z^{(1)},\dots,\tilde z^{(N)}\sim P_Z$:
 \begin{equation}
   \widehat{\mathrm{EC}}_N(x)
@@ -123,20 +132,38 @@ For a candidate solution $x$, we measure reliability via the \emph{empirical cov
 \end{equation}
 The chance constraint in \eqref{eq:cco} targets $\mathrm{EC}(x)=\mathbb{P}(g(x,Z)\le 0)\ge 1-\delta$, while $\widehat{\mathrm{EC}}_N(x)$ provides an unbiased Monte Carlo estimate of $\mathrm{EC}(x)$.
 
+\begin{assumption}[Regularity of $f$, $g$, and $P_Z$]\label{ass:setup}
+We assume:
+\begin{enumerate}
+  \item (\textbf{Objective}) $f$ is convex and differentiable on $\Xc$ and $\nabla f(x)$ is available.
+  \item (\textbf{Constraint}) For $P_Z$-almost every $z$, $x\mapsto g(x,z)$ is convex and differentiable on $\Xc$ and $\nabla_x g(x,z)$ is available.
+  \item (\textbf{Sampling}) We can draw i.i.d.\ samples $z^{(1)},\dots,z^{(M)}\sim P_Z$.
+  \item (\textbf{Integrability}) For each $x\in\Xc$, $g(x,Z)$ and $\nabla_x g(x,Z)$ are integrable.
+\end{enumerate}
+\end{assumption}
+
 \paragraph{Remark on extensions.}
 For clarity, we focus on a single chance constraint in \eqref{eq:cco}; extensions to multiple constraints are discussed in Section~\ref{sec:method}.
 
-\section{Background: Quantiles and Superquantiles}\label{sec:background}
-Chance constraints are governed by quantiles of the random variable $g(x,Z)$, and it is useful to expose this structure explicitly.
-This section derives a bilevel formulation in which the chance constraint is enforced through a scalar inner optimization problem.
-We then explain why the resulting solution map $x\mapsto s^\star(x)$ can be unique but non-differentiable, motivating the relaxation in Section~\ref{sec:method}.
+\subsection{Quantiles and Superquantiles}\label{sec:background}
+The chance constraint in \eqref{eq:cco} is governed by a \emph{quantile} of the scalar random variable $g(x,Z)$.
+Making this explicit lets us replace a probability constraint with an equivalent scalar inequality.
 
-\subsection{Quantile reformulation}
-For a scalar random variable $Y$ with CDF $F_Y$, define its $(1-\delta)$-quantile (value-at-risk) as
+Quantiles are one-dimensional objects.
+This turns feasibility into controlling a single scalar summary of the distribution of $g(x,Z)$, which is the starting point for scalable algorithms that avoid combinatorial sample encodings.
+
+We first rewrite the chance constraint as a quantile constraint.
+We then introduce a superquantile (also known as conditional value-at-risk) variational representation that introduces an auxiliary scalar variable.
+This yields a simple bilevel viewpoint: the outer decision $x$ is optimized while an inner scalar is chosen to summarize the tail of $g(x,Z)$.
+Finally, we explain why this bilevel map can be \emph{unique but nonsmooth}, motivating the smooth, strongly convex surrogate in Section~\ref{sec:method}.
+
+\subsubsection{Quantile reformulation}
+We begin by expressing the chance constraint via a quantile.
+For a scalar random variable $Y$ with CDF $F_Y(t):=\mathbb{P}(Y\le t)$, define its $p$-quantile (value-at-risk) for any $p\in(0,1)$ as
 \begin{equation}
-  \Q_{1-\delta}(Y)\;:=\;\inf\{t\in\mathbb{R}: F_Y(t)\ge 1-\delta\}.\label{eq:quantile-def}
+  \Q_{p}(Y)\;:=\;\inf\{t\in\mathbb{R}: F_Y(t)\ge p\}.\label{eq:quantile-def}
 \end{equation}
-Applying this to $Y=g(x,Z)$, the chance constraint in \eqref{eq:cco} is equivalent to
+In particular, with $p=1-\delta$ and $Y=g(x,Z)$, the chance constraint in \eqref{eq:cco} is equivalent to
 \begin{equation}
   \mathbb{P}\big(g(x,Z)\le 0\big)\ge 1-\delta
   \quad\Longleftrightarrow\quad
@@ -144,16 +171,23 @@ Applying this to $Y=g(x,Z)$, the chance constraint in \eqref{eq:cco} is equivale
 \end{equation}
 Thus, feasibility is controlled by a single scalar summary of the distribution of $g(x,Z)$.
 
-\subsection{Superquantiles and a scalar inner problem}
-The \emph{superquantile} (conditional value-at-risk) at level $1-\delta$ is
+\subsubsection{Superquantiles and a scalar inner problem}
+The \emph{superquantile} (conditional value-at-risk) at level $1-\delta$ can be defined as the average of upper quantiles,
 \begin{equation}
-  \SQ_{1-\delta}(Y)\;:=\;\mathbb{E}\!\left[Y\mid Y\ge \Q_{1-\delta}(Y)\right].\label{eq:sq-def}
+  \SQ_{1-\delta}(Y)\;:=\;\frac{1}{\delta}\int_{1-\delta}^1 \Q_{u}(Y)\,du.\label{eq:sq-def}
 \end{equation}
+When $Y$ has a continuous distribution, this agrees with the more familiar conditional-expectation form
+$\SQ_{1-\delta}(Y)=\mathbb{E}[Y\mid Y\ge \Q_{1-\delta}(Y)]$.
+
+The superquantile admits a convex variational representation with an auxiliary scalar variable.
+This makes it a natural bridge between quantiles (chance constraints) and optimization.
+
 A key fact is that superquantiles admit a variational representation as the minimum of a convex function in a scalar auxiliary variable $s$ \citep{rockafellaruryasev2000cvar}:
 \begin{equation}
-  \SQ_{1-\delta}(Y)=\min_{s\in\mathbb{R}} \left\{ s + \frac{1}{\delta}\,\mathbb{E}\big[(Y-s)_+\big] \right\}.\label{eq:cvar-var}
+  \SQ_{1-\delta}(Y)=\min_{s\in\mathbb{R}} \left\{ s + \frac{1}{\delta}\,\mathbb{E}\big[(Y-s)_+\big] \right\},\label{eq:cvar-var}
 \end{equation}
-The minimizer set in \eqref{eq:cvar-var} is closely related to the quantile $\Q_{1-\delta}(Y)$; in particular, if the $(1-\delta)$-quantile is unique---e.g., if $Y$ admits a continuous density that is strictly positive in a neighborhood of $q=\Q_{1-\delta}(Y)$---then the minimizer is unique and equals $q$ \citep{rockafellaruryasev2000cvar}.
+where $(u)_+:=\max\{u,0\}$.
+The minimizer set in \eqref{eq:cvar-var} is closely related to the quantile $\Q_{1-\delta}(Y)$; in particular, if the CDF of $Y$ is strictly increasing at $q=\Q_{1-\delta}(Y)$ (e.g., $Y$ admits a density that is strictly positive in a neighborhood of $q$), then the minimizer is unique and equals $q$ \citep{rockafellaruryasev2000cvar}.
 
 Specializing to $Y=g(x,Z)$ motivates the scalar inner objective
 \begin{equation}
@@ -168,46 +202,68 @@ Under the uniqueness condition above, $s^\star(x)$ coincides with the $(1-\delta
 This yields the bilevel viewpoint of CCO developed in \citet{laguelmalickackooij2021bilevel}.
 
 \begin{lemma}[Uniqueness of the inner minimizer]\label{lem:unique-sstar}
-Fix $x\in\Xc$ and define $Y:=g(x,Z)$ with $q:=\Q_{1-\delta}(Y)$.
-Assume the $(1-\delta)$-quantile is unique (equivalently, the quantile set reduces to a point; for instance, this holds if $Y$ admits a continuous density that is strictly positive in a neighborhood of $q$).
-Then $\arg\min_{s\in\mathbb{R}} G_\delta(x,s)$ is a singleton and the unique minimizer satisfies
+Fix $x\in\Xc$ and define $Y:=g(x,Z)$.
+Assume that $P_Z$ is absolutely continuous with respect to Lebesgue measure on $\mathbb{R}^{m}$ (denoted $P_Z\ll \mathrm{Leb}$) and admits a continuous density, and that $z\mapsto g(x,z)$ is continuous.
+Assume moreover that the induced scalar random variable $Y$ has a continuous distribution and that its CDF is strictly increasing at $q:=\Q_{1-\delta}(Y)$.
+Then the scalar inner problem \eqref{eq:sstar-def} has a unique minimizer, and the unique minimizer satisfies
 \[
-  s^\star(x)=\Q_{1-\delta}(Y)=\Q_{1-\delta}(g(x,Z)).
+  s^\star(x)=q=\Q_{1-\delta}(Y)=\Q_{1-\delta}(g(x,Z)).
 \]
 \end{lemma}
 \emph{Proof in Appendix~\ref{app:proofs}.}
 
-\subsection{Uniqueness vs.\ differentiability of the quantile map}
+\subsubsection{Uniqueness vs.\ differentiability of the quantile map}
+
+From \eqref{eq:G}--\eqref{eq:sstar-def}, the chance constraint can be written as $s^\star(x)\le 0$ where
+$s^\star(x)\in\arg\min_{s\in\mathbb{R}} G_\delta(x,s)$ and $G_\delta(x,s)=s+\frac{1}{\delta}\mathbb{E}[(g(x,Z)-s)_+]$.
+To optimize over $x$, it is natural to ask whether the map $x\mapsto s^\star(x)$ admits a usable derivative.
+
+\paragraph{What can go wrong even when $s^\star(x)$ is unique?}
 For each fixed $x$, the function $s\mapsto G_\delta(x,s)$ is convex.
-If $Y=g(x,Z)$ has no atom, then $G_\delta(x,s)$ is differentiable in $s$ with
+If $Y=g(x,Z)$ has no point mass, then $G_\delta(x,s)$ is differentiable in $s$ and the optimality condition for $s^\star(x)$ can be written as
 \[
-  \partial_s G_\delta(x,s)=1-\frac{1}{\delta}\mathbb{P}(Y>s).
+  \partial_s G_\delta(x,s^\star(x))=0,
+  \qquad
+  \partial_s G_\delta(x,s)=1-\frac{1}{\delta}\mathbb{P}\big(g(x,Z)>s\big).
 \]
-If moreover the $(1-\delta)$-quantile is unique (Lemma~\ref{lem:unique-sstar}), then the first-order condition has a unique solution and $s^\star(x)$ is unique.
+When the $(1-\delta)$-quantile is unique (Lemma~\ref{lem:unique-sstar}), this condition identifies a unique $s^\star(x)$.
+However, the dependence of $s^\star(x)$ on $x$ can still fail to be differentiable.
 
-However, \emph{uniqueness does not imply differentiability} of the map $x\mapsto s^\star(x)$.
-Intuitively, the kink in $(u)_+$ causes the derivatives of $G_\delta$ to involve indicator functions that change discontinuously as $x$ varies.
-Formally, differentiating through the optimality condition $\partial_s G_\delta(x,s^\star(x))=0$ would require second derivatives in $s$ (or an implicit function theorem argument), but $G_\delta(x,s)$ is not twice differentiable in $s$ because of the hinge.
-As a consequence, standard differentiability results for argmin maps (e.g., via Danskin-type theorems requiring $C^2$ smoothness and strong convexity in the inner variable \citep{danskin1967theory}) do not apply directly.
-Section~\ref{sec:method} addresses this by introducing a smooth, strongly convex surrogate whose minimizer is differentiable.
+\paragraph{Why is differentiability nontrivial?}
+The positive-part function introduces kinks.
+In particular, under the same ``no point mass'' condition, differentiating $G_\delta$ with respect to $x$ brings in an indicator:
+\[
+  \nabla_x G_\delta(x,s)
+  =
+  \frac{1}{\delta}\,\mathbb{E}\!\left[\mathbf{1}\!\left\{g(x,Z)>s\right\}\nabla_x g(x,Z)\right].
+\]
+As $x$ changes, the event $\{g(x,Z)>s\}$ can change abruptly (points move in and out of the tail), which can create kinks in $x\mapsto s^\star(x)$ even if $s^\star(x)$ is unique.
+\paragraph{Example.}
+Let $m=1$, let $Z\sim\mathrm{Unif}[0,1]$, and define $g(x,z):=|x|-z$.
+Then $g(x,Z)$ has a continuous distribution and $\Q_{1-\delta}(g(x,Z))=|x|-\delta$, so $s^\star(x)=|x|-\delta$ is unique but not differentiable at $x=0$.
 
-\section{Method: Bilevel Augmented Hypergradient Optimization}\label{sec:method}
-We now describe our bilevel augmented approach.
-Starting from the bilevel reformulation in \eqref{eq:sstar-def}, our goal is to optimize $f(x)$ while driving the quantile proxy $s^\star(x)$ below zero.
-The main challenge is that $s^\star(x)$ can be unique but non-differentiable (Section~\ref{sec:background}), which obstructs direct gradient-based optimization.
-We address this by (i) smoothing and strongly convexifying the inner problem to obtain a differentiable surrogate $\widehat s^\star(x)$, and (ii) penalizing constraint violation through a differentiable augmented objective.
+\paragraph{How do we address it?}
+Direct implicit differentiation of the argmin map typically requires twice differentiability and strong convexity in the inner variable \citep{gould2016argmin,pedregosa2016hyperparameter}.
+Section~\ref{sec:method} addresses this by replacing $(\cdot)_+$ with a $C^2$ smoothing and adding a small strongly convex regularizer in $s$, making the inner minimizer differentiable in $x$.
+
+\section{Method: Augmented Hypergradient CCO}\label{sec:method}
+We now describe \emph{Augmented Hypergradient CCO} (AH-CCO), our bilevel augmented approach.
+We begin by deriving the bilevel reformulation of CCO and then present a scalable hypergradient-based algorithm for solving it.
 
 \subsection{From chance feasibility to a bilevel constraint}
-Under the conditions described in Section~\ref{sec:background}, the chance constraint is equivalent to $s^\star(x)\le 0$, where
-\[
-  s^\star(x)\in\arg\min_{s\in\mathbb{R}} G_\delta(x,s),
-  \qquad
-  G_\delta(x,s)= s + \frac{1}{\delta}\,\mathbb{E}\!\left[(g(x,Z)-s)_+\right].
-\]
-This yields the constrained outer problem
+Equation~\eqref{eq:sstar-def} defines the scalar inner solution map $s^\star(x)\in\arg\min_s G_\delta(x,s)$.
+Under the uniqueness condition in Lemma~\ref{lem:unique-sstar}, $s^\star(x)$ coincides with the $(1-\delta)$-quantile of $g(x,Z)$, so the chance constraint in \eqref{eq:cco} is equivalent to $s^\star(x)\le 0$.
+Substituting this characterization into \eqref{eq:cco} yields the bilevel constrained reformulation
 \begin{equation}
-  \min_{x\in\Xc}\; f(x)\qquad \text{s.t.}\qquad s^\star(x)\le 0.\label{eq:outer-constrained}
+  \begin{aligned}
+    \min_{x\in\Xc}\; & f(x)\\
+    \text{s.t.}\; & s^\star(x)\le 0,\\
+    & s^\star(x)=\arg\min_{s\in\mathbb{R}} G_\delta(x,s).
+  \end{aligned}\label{eq:outer-constrained}
 \end{equation}
+Our goal is to optimize $f(x)$ while driving the scalar quantile $s^\star(x)$ below zero.
+The main challenge is that $s^\star(x)$ can be non-differentiable in $x$ (Section~\ref{sec:background}), which obstructs direct gradient-based optimization.
+We address this by (i) smoothing and strongly convexifying the inner problem to obtain a differentiable surrogate $\widehat s^\star(x)$, and (ii) penalizing constraint violation through a differentiable augmented objective.
 
 \subsection{A differentiable augmented objective}
 We enforce $s^\star(x)\le 0$ via a standard Lagrangian relaxation. The constrained problem \eqref{eq:outer-constrained} can be written as
@@ -256,7 +312,7 @@ For each $x$, the function $s\mapsto \widehat G_{\delta,\theta,\varepsilon}(x,s)
 \end{equation}
 
 \subsection{Hypergradients via implicit differentiation}
-Because the inner problem \eqref{eq:shat-star} is strongly convex and smooth in $s$, the solution map $x\mapsto \widehat s^\star(x)$ is differentiable under mild regularity assumptions on $g$.
+Because the inner problem \eqref{eq:shat-star} is strongly convex and smooth in $s$, the solution map $x\mapsto \widehat s^\star(x)$ is differentiable under mild regularity assumptions (e.g., $g(\cdot,z)$ is differentiable for almost every $z$ and derivatives can be exchanged with expectations).
 Let $\phi(x,s):=\partial_s \widehat G_{\delta,\theta,\varepsilon}(x,s)$.
 The optimality condition $\phi(x,\widehat s^\star(x))=0$ and the fact that $\partial_s\phi(x,s)=\partial^2_{ss}\widehat G_{\delta,\theta,\varepsilon}(x,s)\ge \varepsilon$ imply (by the implicit function theorem) that $\widehat s^\star(x)$ is $C^1$ and
 \begin{equation}
@@ -272,40 +328,90 @@ We then optimize the differentiable surrogate of \eqref{eq:Fmu}:
 
 \subsection{Sample-based implementation}
 In practice, we approximate expectations by sample averages.
-Given a minibatch $\{z^{(j)}\}_{j=1}^M$, we use the plug-in estimator
+At each outer iteration $k$, we draw an i.i.d.\ minibatch $\{z_k^{(j)}\}_{j=1}^M\sim P_Z$ and reuse it for (i) the inner solve for $s$ and (ii) the hypergradient computation in \eqref{eq:hypergrad}.
+For readability, we suppress the iteration index and simply write $\{z^{(j)}\}_{j=1}^M$.
+Denote this minibatch by $B:=\{z^{(j)}\}_{j=1}^M$.
+We then use the plug-in estimator
 \begin{equation}
-  \widehat G_{\delta,\theta,\varepsilon}(x,s;\{z^{(j)}\}_{j=1}^M)
+  \begin{aligned}
+  \widehat G_{\delta,\theta,\varepsilon}(x,s;B)
   \;:=\;
-  s + \frac{1}{\delta M}\sum_{j=1}^M h_\theta\!\left(g(x,z^{(j)})-s\right) + \frac{\varepsilon}{2}s^2.\label{eq:Ghat-plugin}
+  &\, s + \frac{1}{\delta M}\sum_{j=1}^M h_\theta\!\bigl(g(x,z^{(j)})-s\bigr)\\
+  &\;+\; \frac{\varepsilon}{2}s^2,
+  \end{aligned}\label{eq:Ghat-plugin}
 \end{equation}
-The inner minimizer $\widehat s^\star(x)$ can be obtained efficiently because it is one-dimensional and the derivative $\partial_s \widehat G$ is strictly increasing in $s$; we use a robust bisection/Newton procedure.
-The outer step applies a gradient-based update (e.g., SGD/Adam) to $\widehat F_\mu(x)$, optionally projecting back onto $\Xc$.
+Let $\widehat s_M^\star(x):=\arg\min_{s\in\mathbb{R}}\widehat G_{\delta,\theta,\varepsilon}(x,s;B)$ denote the sample-based inner minimizer.
+It can be obtained efficiently because the problem is one-dimensional.
+Moreover, the derivative
+\begin{equation}
+  \begin{aligned}
+  \MoveEqLeft[2]\widehat\phi_M(x,s)
+  \;:=\;
+  \partial_s \widehat G_{\delta,\theta,\varepsilon}(x,s;B)\\
+  &\;=\;
+  \,1-\frac{1}{\delta M}\sum_{j=1}^M h'_\theta(g(x,z^{(j)})-s)\;+\;\varepsilon s
+  \end{aligned}\label{eq:phi-plugin}
+\end{equation}
+is strictly increasing in $s$ (by $\varepsilon$-strong convexity), so $\widehat s_M^\star(x)$ is the unique root of $\widehat\phi_M(x,s)=0$.
+Moreover, since $0\le h'_\theta\le 1$, we have $\widehat\phi_M(x,-1/\varepsilon)\le 0$ and $\widehat\phi_M(x,1/(\delta\varepsilon))\ge 1$, hence $\widehat s_M^\star(x)\in[-1/\varepsilon,\;1/(\delta\varepsilon)]$ for all $x$ and minibatches.
+Algorithm~\ref{alg:inner-bisect} gives a robust warm-started bisection procedure for this inner solve.
+In the outer loop, we use $\widehat s_M^\star(x)$ (and its derivatives) in place of $\widehat s^\star(x)$ to form a stochastic gradient of $\widehat F_\mu(x)$, optionally projecting back onto $\Xc$.
 We may decrease $\mu$ over iterations to sharpen feasibility while keeping gradients stable.
 
+\paragraph{Main algorithm.}
+Algorithm~\ref{alg:ahcco} summarizes AH-CCO.
+Each outer iteration draws a fresh minibatch $B\sim P_Z$, warm-starts the one-dimensional inner solve for $\widehat s_M^\star(x_k)$ using $s_k$ (Algorithm~\ref{alg:inner-bisect}), computes the corresponding hypergradient via \eqref{eq:hypergrad} using the same minibatch, and then performs a stochastic gradient step on the penalized objective $\widehat F_{\mu_k}$ in \eqref{eq:Fhat}.
+The penalty parameter $\mu_k$ can be decreased over time to progressively tighten feasibility.
+
 \begin{algorithm}[!t]
-  \caption{CCO-BLO: bilevel augmented hypergradient method}\label{alg:ccoblo}
+  \caption{AH-CCO: Augmented Hypergradient CCO}\label{alg:ahcco}
   \begin{algorithmic}[1]
     \Require safety level $\delta$, smoothing $\theta$, strong convexity $\varepsilon$, penalty schedule $\{\mu_k\}_{k=0}^{K-1}$, batch size $M$, initial $x_0\in\Xc$
     \State initialize $s_0\in\mathbb{R}$
     \For{$k=0,1,\dots,K-1$}
-      \State sample minibatch $\{z^{(j)}\}_{j=1}^M\sim P_Z$
-      \State \textbf{(inner)} compute $s_{k+1}\approx \widehat s^\star(x_k)$ by minimizing $\widehat G_{\delta,\theta,\varepsilon}(x_k,s;\{z^{(j)}\})$ in $s$ (e.g., bisection/Newton)
-      \State \textbf{(hypergradient)} compute $\nabla_x \widehat s^\star(x_k)$ via \eqref{eq:hypergrad} using the same minibatch
-      \State \textbf{(outer)} form $\nabla_x \widehat F_{\mu_k}(x_k)$ for $\widehat F_{\mu}(x)=f(x)+\frac{([\widehat s^\star(x)]_+)^2}{2\mu}$
+      \State sample minibatch $B=\{z^{(j)}\}_{j=1}^M\sim P_Z$
+      \State \textbf{(inner)} $s_{k+1}\gets$ Algorithm~\ref{alg:inner-bisect}$(x_k,s_k,B,\delta,\theta,\varepsilon)$
+      \State \textbf{(hypergradient)} compute $\nabla_x \widehat s_M^\star(x_k)$ via \eqref{eq:hypergrad} using the same minibatch
+      \State \textbf{(outer)} form $\nabla_x \widehat F_{\mu_k}(x_k)$ for $\widehat F_{\mu}(x)=f(x)+\frac{([\widehat s_M^\star(x)]_+)^2}{2\mu}$
       \State update $x_{k+1}\leftarrow \Pi_{\Xc}\!\left(x_k - \eta_k \nabla_x \widehat F_{\mu_k}(x_k)\right)$ (or use Adam)
     \EndFor
     \State \Return $x_K$
   \end{algorithmic}
 \end{algorithm}
 
-\paragraph{Multiple chance constraints.}
-For separate chance constraints $\mathbb{P}(g_i(x,Z)\le 0)\ge 1-\delta_i$, $i=1,\dots,r$, we introduce one scalar $s_i$ per constraint and apply the same construction to each inner objective $\widehat G_{\delta_i,i}(x,s_i)$.
-The inner step decomposes into $r$ independent one-dimensional solves, and the outer penalty can be taken as $\sum_{i=1}^r ([\widehat s_i^\star(x)]_+)^2/(2\mu_i)$ (or with a shared $\mu$).
+\begin{algorithm}[!t]
+  \caption{Inner-loop bisection for $\widehat s_M^\star(x)$}\label{alg:inner-bisect}
+  \begin{algorithmic}[1]
+    \Require $x$, warm start $s^{(0)}$, minibatch $B=\{z^{(j)}\}_{j=1}^M$, $(\delta,\theta,\varepsilon)$, tolerance $\tau>0$, max iters $T$
+    \State initialize bracket $[s_L,s_U]\gets[-1/\varepsilon,\;1/(\delta\varepsilon)]$ \hfill (guaranteed by $0\le h'_\theta\le 1$ and \eqref{eq:phi-plugin})
+    \If{$s^{(0)}\in[s_L,s_U]$} \hfill (optional warm start)
+      \If{$\widehat\phi_M(x,s^{(0)})\le 0$} \State $s_L\gets s^{(0)}$ \Else \State $s_U\gets s^{(0)}$ \EndIf
+    \EndIf
+    \For{$t=1,2,\dots,T$}
+      \State $s_M \gets (s_L+s_U)/2$
+      \If{$\widehat\phi_M(x,s_M)\le 0$} \State $s_L \gets s_M$ \Else \State $s_U \gets s_M$ \EndIf
+      \If{$|s_U-s_L|\le \tau$} \State \textbf{break} \EndIf
+    \EndFor
+    \State \Return $(s_L+s_U)/2$
+  \end{algorithmic}
+\end{algorithm}
+
+% \paragraph{Multiple chance constraints.}
+% For separate chance constraints $\mathbb{P}(g_i(x,Z)\le 0)\ge 1-\delta_i$, $i=1,\dots,r$, we introduce one scalar $s_i$ per constraint and apply the same construction to each inner objective $\widehat G_{\delta_i,i}(x,s_i)$.
+% The inner step decomposes into $r$ independent one-dimensional solves, and the outer penalty can be taken as $\sum_{i=1}^r ([\widehat s_i^\star(x)]_+)^2/(2\mu_i)$ (or with a shared $\mu$).
 
 \section{Theory}\label{sec:theory}
-This section focuses on two theoretical questions:
-(i) how well the relaxed inner minimizer $\widehat s^\star(x)$ approximates the true quantile $s^\star(x)=\Q_{1-\delta}(g(x,Z))$ as $\theta,\varepsilon\to 0$; and
-(ii) how stochastic gradient methods behave when optimizing the smooth surrogate outer objective $\widehat F_\mu$.
+The goal of this section is to connect the differentiable surrogate optimized by AH-CCO back to the original chance constraint and to justify the use of stochastic hypergradient updates.
+Recall that the chance constraint in \eqref{eq:cco} is equivalent to the quantile inequality
+\[
+  q(x):=\Q_{1-\delta}(g(x,Z))\le 0.
+\]
+Section~\ref{sec:theory-approx} quantifies how the relaxed inner minimizer $\widehat s^\star(x)$ approximates $q(x)$ as $\theta,\varepsilon\to 0$, implying that the surrogate feasibility set $\{x:\widehat s^\star(x)\le 0\}$ approximates the true feasible set $\{x:q(x)\le 0\}$ up to a controllable slack.
+Section~\ref{sec:theory-sgd} then provides a standard stationarity guarantee for stochastic gradient updates applied to the smooth surrogate outer objective $\widehat F_\mu$, explicitly accounting for minibatch estimation and inexact inner solves.
+
+These results clarify (i) what is lost by smoothing/regularization and (ii) why the resulting objective can be optimized efficiently with first-order methods.
+
+We decompose the approximation error into a \emph{smoothing bias} term ($O(\theta)$) and a \emph{regularization bias} term ($O(\varepsilon)$) under a standard local density condition at the target quantile.
 
 \subsection{Approximation of the quantile map}\label{sec:theory-approx}
 Fix $x\in\Xc$ and define the scalar random variable $Y:=g(x,Z)$, with quantile $q:=\Q_{1-\delta}(Y)$.
@@ -318,140 +424,466 @@ Recall that the relaxed inner objective is
 and its unique minimizer is $\widehat s^\star(x)=\arg\min_s \widehat G_{\delta,\theta,\varepsilon}(x,s)$ (uniqueness follows from $\varepsilon$-strong convexity in $s$).
 We relate $\widehat s^\star(x)$ to the original quantile $q$.
 
-\paragraph{Assumptions.}
-We assume that $Y$ has a continuous distribution and admits a density $p_Y$ that is continuous at the quantile.
-Moreover, we assume a \emph{quantile regularity} condition: there exist constants $m>0$ and $r>0$ such that
+\begin{assumption}[Local regularity at the target quantile]\label{ass:quantile-regularity}
+Fix $x\in\Xc$, define $Y:=g(x,Z)$, and let $q:=\Q_{1-\delta}(Y)$.
+Assume that $Y$ admits a density $p_Y$ on a neighborhood of $q$, and that $p_Y$ is continuous at $q$ with $p_Y(q)>0$ (i.e., $\lim_{t\to q}p_Y(t)=p_Y(q)$).
+By continuity and $p_Y(q)>0$, there exist constants $m>0$ and $r>0$ such that
 \begin{equation}
   p_Y(t)\ge m\qquad\text{for all }t\in[q-r,q+r].\label{eq:density-lower}
 \end{equation}
-This condition is standard in quantile sensitivity analysis: it rules out flat CDF regions at the target level and implies local Lipschitzness of the inverse CDF around $q$.
+\end{assumption}
 
-\begin{lemma}[Derivative bounds for the hinge smoothing]\label{lem:h-deriv-bounds}
-The smoothing $h_\theta$ in \eqref{eq:htheta} satisfies $0\le h'_\theta(u)\le 1$ for all $u$ and $h''_\theta(u)=0$ for $|u|>\theta$.
-Moreover, for $|u|\le \theta/2$ we have $h''_\theta(u)\ge \frac{9}{16\theta}$.
-\end{lemma}
-\emph{Proof in Appendix~\ref{app:proofs}.}
+\paragraph{Discussion.}
+Condition \eqref{eq:density-lower} is the usual \emph{density bounded away from zero at the quantile} assumption.
+It rules out flat CDF regions at the target level (equivalently, $F_Y$ is strictly increasing at $q$), and it implies that the quantile functional is locally stable: small perturbations of tail probability translate to $O(1/m)$ changes in $q$ \citep{vandervaart1998asymptotic,koenker2005quantile}.
+Such a local lower bound holds under mild smoothness/nondegeneracy conditions on the pushforward map $z\mapsto g(x,z)$ when $Z$ has a smooth density; it is satisfied by our synthetic setups.
+It holds for our synthetic problems (Gaussian and exponential tails).
+We defer two technical lemmas used in the proof of Theorem~\ref{thm:quantile-approx} to Appendix~\ref{app:proofs}.
 
-\begin{lemma}[Smoothing-only bias]\label{lem:smoothing-bias}
-Assume \eqref{eq:density-lower} holds.
-Let $s_\theta$ be any solution to $\mathbb{E}[h'_\theta(Y-s_\theta)]=\delta$ (equivalently, any minimizer of $\widehat G_{\delta,\theta,0}(x,\cdot)$).
-Then the true quantile satisfies $q\in[s_\theta-\theta,s_\theta+\theta]$, hence $|s_\theta-q|\le \theta$.
-\end{lemma}
-\emph{Proof in Appendix~\ref{app:proofs}.}
+
+We next quantify how the relaxed inner minimizer $\widehat s^\star(x)$ approximates the true quantile $q$.
+The approximation error has two sources: (i) replacing the hinge with its $C^2$ smoothing $h_\theta$ introduces an $O(\theta)$ bias, and (ii) adding the strongly convex term $\tfrac{\varepsilon}{2}s^2$ makes the inner problem differentiable but induces an additional $O(\varepsilon)$ shift.
+The constant in the $O(\varepsilon)$ term depends on how much probability mass lies near the quantile, captured by the density lower bound \eqref{eq:density-lower}.
 
 \begin{theorem}[Quantile approximation under $\theta$-smoothing and $\varepsilon$-regularization]\label{thm:quantile-approx}
 Let $q=\Q_{1-\delta}(Y)$ and assume \eqref{eq:density-lower} holds.
 Fix $\theta\le r/2$ and let $\widehat s^\star$ be the unique minimizer of $\widehat G_{\delta,\theta,\varepsilon}(x,\cdot)$ for some $\varepsilon>0$.
-Assume additionally that $|\widehat s^\star|\le B$ and that $\widehat s^\star\in[q-r/2,q+r/2]$.
-Then
+Assume the regularization is small enough that
+\begin{equation}
+  \delta\varepsilon\left(|q|+\frac{r}{2}\right)\;<\; m\left(\frac{r}{2}-\theta\right).\label{eq:eps-localize}
+\end{equation}
+Then $\widehat s^\star\in[q-r/2,q+r/2]$ and
 \begin{equation}
   |\widehat s^\star - q|
   \;\le\;
-  \theta + \frac{16\delta B}{9m}\,\varepsilon.\label{eq:shat-q-bound}
+  \theta + \frac{16\delta}{9m}\left(|q|+\frac{r}{2}\right)\varepsilon.\label{eq:shat-q-bound}
 \end{equation}
 In particular, if $\theta\to 0$ and $\varepsilon\to 0$ then $\widehat s^\star\to q$.
 \end{theorem}
-\emph{Proof in Appendix~\ref{app:proofs}.}
+The proof is given in Appendix~\ref{app:proofs}.
+The localization condition \eqref{eq:eps-localize} ensures that the regularization does not push $\widehat s^\star$ outside the neighborhood where the density lower bound \eqref{eq:density-lower} holds, which is needed for an explicit bound with $1/m$ scaling.
+
+\paragraph{Implication for feasibility sets.}
+The original chance constraint is equivalent to $q(x)\le 0$.
+Let $\mathcal{F}:=\{x\in\Xc:q(x)\le 0\}$ be the true feasible set and let $\widehat{\mathcal{F}}:=\{x\in\Xc:\widehat s^\star(x)\le 0\}$ be the surrogate feasible set.
+For each $x$, define the pointwise tolerance $e(x)$ as the right-hand side of \eqref{eq:shat-q-bound} (with the corresponding constants $m,r$ for that $x$).
+Then Theorem~\ref{thm:quantile-approx} implies the sandwich relation
+\[
+  \begin{aligned}
+    \{x\in\Xc:q(x)\le -e(x)\}
+    &\subseteq \widehat{\mathcal{F}},\\
+    \widehat{\mathcal{F}}
+    &\subseteq \{x\in\Xc:q(x)\le e(x)\}.
+  \end{aligned}
+\]
+Thus CCO-feasible points with a margin remain feasible for the surrogate, and surrogate feasibility implies CCO feasibility up to a quantile slack controlled by $(\theta,\varepsilon)$.
+
+\paragraph{Bounding $|q(x)|$ on $\Xc$.}
+If $\Xc$ has finite diameter $D_{\Xc}:=\sup_{x,y\in\Xc}\|x-y\|<\infty$ and $g(\cdot,z)$ is $G$-Lipschitz on $\Xc$ uniformly in $z$ (e.g., $\|\nabla_x g(x,z)\|\le G$ for all $x\in\Xc$ and $P_Z$-a.e.\ $z$), then $|g(x,Z)-g(x_0,Z)|\le GD_{\Xc}$ almost surely for any $x_0\in\Xc$.
+In particular,
+\[
+  q(x_0)-GD_{\Xc}\ \le\ q(x)\ \le\ q(x_0)+GD_{\Xc},
+\]
+and therefore $|q(x)|\le |q(x_0)|+GD_{\Xc}$ for all $x\in\Xc$.
+This type of bound can be combined with Theorem~\ref{thm:quantile-approx} (and uniform regularity constants) to obtain a uniform feasibility slack across $x$.
+
 
 Define $H_\theta(s):=\mathbb{E}[h'_\theta(Y-s)]$.
 The first-order optimality condition for $\widehat s^\star$ can be written as
 \begin{equation}
   0 = 1 - \frac{1}{\delta}H_\theta(\widehat s^\star) + \varepsilon \widehat s^\star
-  \qquad\Longleftrightarrow\qquad
+  \Longleftrightarrow
   H_\theta(\widehat s^\star)=\delta(1+\varepsilon \widehat s^\star).\label{eq:Htheta-root}
 \end{equation}
 
-\paragraph{Discussion of limits.}
-Theorem~\ref{thm:quantile-approx} shows that the relaxation error separates into a smoothing term ($\theta$) and a regularization term ($O(\varepsilon)$), under standard density regularity around the target quantile.
-In practice, $\varepsilon$ is introduced for differentiability and numerical stability, but it also shifts the effective target tail probability through the optimality condition \eqref{eq:Htheta-root}.
-The bound suggests choosing $\varepsilon$ small relative to the scale of $s$ (and decreasing it as $\theta$ shrinks) to recover the original chance constraint.
+\paragraph{Interpretation.}
+Theorem~\ref{thm:quantile-approx} provides a concrete bias decomposition: the smoothing error decays linearly in $\theta$, while the strong convexity term induces an additional bias that decays linearly in $\varepsilon$.
+At the same time, $\varepsilon$ controls numerical stability of hypergradients through \eqref{eq:hypergrad} (via $(\partial^2_{ss}\widehat G)^{-1}\simeq 1/\varepsilon$), so $\varepsilon$ trades off stability against accuracy.
+Condition \eqref{eq:eps-localize} formalizes the ``small enough'' regime in which this trade-off yields a clean, localized bound.
 
-\subsection{Convergence of stochastic optimization of $\widehat F_\mu$}\label{sec:theory-sgd}
-We now consider minimizing the smooth surrogate outer objective
+\subsection{Stochastic optimization with inexact inner solves}\label{sec:theory-sgd}
+Section~\ref{sec:method} proposes to minimize the smooth surrogate
 \[
   \widehat F_\mu(x)= f(x) + \frac{([\widehat s^\star(x)]_+)^2}{2\mu},
 \]
 where $\widehat s^\star(x)$ is defined by \eqref{eq:shat-star}.
-We analyze stochastic gradient descent (SGD) on $\widehat F_\mu$ for a \emph{fixed} penalty parameter $\mu>0$.
-(In practice, $\mu$ can be decreased in a continuation scheme; our theory applies to each fixed $\mu$.)
+Algorithm~\ref{alg:ahcco} is stochastic in two ways:
+(i) expectations are replaced by minibatch averages, and
+(ii) the inner minimizer $\widehat s^\star(x_k)$ is computed approximately and then plugged into the hypergradient formula \eqref{eq:hypergrad} and the outer objective \eqref{eq:Fhat}.
+We state a convergence guarantee that explicitly accounts for these inexactness sources.
 
-\paragraph{Assumptions.}
-We assume $\widehat F_\mu$ is bounded below by $\widehat F_\mu^{\inf}$ and has $L$-Lipschitz gradient on $\Xc$.
-We also assume access to an unbiased stochastic gradient estimator $g_k$ such that, conditional on $x_k$,
-\begin{equation}
-  \mathbb{E}[g_k\mid x_k]=\nabla \widehat F_\mu(x_k),
-  \qquad
-  \mathbb{E}\!\left[\|g_k-\nabla \widehat F_\mu(x_k)\|^2\mid x_k\right]\le \sigma^2.\label{eq:sgd-assump}
-\end{equation}
-These are standard assumptions in nonconvex stochastic optimization \citep{ghadimi2013stochastic}.
+\begin{assumption}[Smoothness, sampling, and inexact inner solves]\label{ass:stoch}
+Assume:
+\begin{enumerate}
+  \item (\textbf{Smoothness}) $f$ is differentiable, bounded below, and has $L_f$-Lipschitz gradient on $\Xc$.
+  For $P_Z$-a.e.\ $z$, $x\mapsto g(x,z)$ is twice differentiable on $\Xc$ and there exist constants $G_g,H_g>0$ such that
+  $\|\nabla_x g(x,z)\|\le G_g$ and $\|\nabla^2_{xx} g(x,z)\|\le H_g$ for all $x\in\Xc$.
+  \item (\textbf{Sampling}) At each iteration $k$, we draw an i.i.d.\ minibatch $\mathcal{B}_k=\{z_k^{(j)}\}_{j=1}^M$ from $P_Z$, independently across $k$.
+  \item (\textbf{Inner loop}) Let $\widehat G_{\delta,\theta,\varepsilon}(x,s;\mathcal{B}_k)$ denote the sample-average inner objective in \eqref{eq:Ghat-plugin}, and let
+  $\widehat s^\star(x_k;\mathcal{B}_k):=\arg\min_s \widehat G_{\delta,\theta,\varepsilon}(x_k,s;\mathcal{B}_k)$ be its unique minimizer.
+  The inner solver performs $T$ bisection steps on the first-order condition $\partial_s\widehat G_{\delta,\theta,\varepsilon}(x_k,s;\mathcal{B}_k)=0$, initialized with the bracket
+  \begin{equation}
+    s^{\mathrm{L}}:=-\frac{1}{\varepsilon},
+    \qquad
+    s^{\mathrm{U}}:=\frac{1}{\delta\varepsilon},\label{eq:inner-bracket}
+  \end{equation}
+  and returns an approximate solution $\tilde s_k\in[s^{\mathrm{L}},s^{\mathrm{U}}]$.
+\end{enumerate}
+\end{assumption}
 
-\begin{theorem}[SGD finds a stationary point of the surrogate]\label{thm:sgd}
-Consider the (unconstrained) SGD recursion $x_{k+1}=x_k-\eta g_k$ with constant step size $\eta\le 1/L$ and $g_k$ satisfying \eqref{eq:sgd-assump}.
-Then for any $K\ge 1$,
+\begin{lemma}[Inner-loop accuracy]\label{lem:inner-accuracy}
+Under Assumption~\ref{ass:stoch}, the bisection inner loop satisfies
 \begin{equation}
-  \frac{1}{K}\sum_{k=0}^{K-1}\mathbb{E}\!\left[\|\nabla \widehat F_\mu(x_k)\|^2\right]
+  |\tilde s_k-\widehat s^\star(x_k;\mathcal{B}_k)|
   \;\le\;
-  \frac{2(\widehat F_\mu(x_0)-\widehat F_\mu^{\inf})}{\eta K}
-  + L\eta\sigma^2.\label{eq:sgd-rate}
+  \frac{s^{\mathrm{U}}-s^{\mathrm{L}}}{2^T}
+  \;=\;
+  \frac{1+\delta}{\delta\,\varepsilon}\,2^{-T}.\label{eq:inner-bisect-rate}
 \end{equation}
-In particular, choosing $\eta=\Theta(1/\sqrt{K})$ yields the usual $O(1/\sqrt{K})$ convergence rate in expected squared gradient norm.
+Moreover, letting $\widehat s^\star(x_k)$ denote the population minimizer in \eqref{eq:shat-star}, we have
+\begin{equation}
+  \mathbb{E}\!\left[|\tilde s_k-\widehat s^\star(x_k)|\mid x_k\right]
+  \;\le\;
+  \frac{1+\delta}{\delta\,\varepsilon}\,2^{-T}
+  + \frac{1}{2\delta\,\varepsilon\sqrt{M}}
+  \;=:\;\epsilon'.\label{eq:inner-eps-s}
+\end{equation}
+\end{lemma}
+\emph{Proof in Appendix~\ref{app:proofs}.}
+
+\paragraph{Inexact stochastic gradients.}
+Let $\widehat F_\mu^{\inf}:=\inf_{x\in\Xc}\widehat F_\mu(x)$.
+Under Assumption~\ref{ass:stoch} and the smoothness of $h_\theta$, the map $x\mapsto \widehat s^\star(x)$ is continuously differentiable and $\widehat F_\mu$ has $L$-Lipschitz gradient on $\Xc$ for some $L$ that depends on $(L_f,G_g,H_g,\theta,\varepsilon,\mu)$ (notably through the factor $(\partial^2_{ss}\widehat G)^{-1}\simeq 1/\varepsilon$ in \eqref{eq:hypergrad}).
+We analyze updates of the form
+\[
+  x_{k+1}=x_k-\eta\,\tilde g_k,
+\]
+where $\tilde g_k$ is the gradient estimate produced by Algorithm~\ref{alg:ahcco} from minibatch $\mathcal{B}_k$ and inner solution $\tilde s_k$.
+We model its deviation from the true gradient by allowing bias:
+\begin{equation}
+  \mathbb{E}[\tilde g_k\mid x_k]=\nabla \widehat F_\mu(x_k)+b_k,
+  \qquad
+  \mathbb{E}\!\left[\|\tilde g_k-\mathbb{E}[\tilde g_k\mid x_k]\|^2\mid x_k\right]\le \sigma^2.\label{eq:stoch-bias-var}
+\end{equation}
+Here $b_k$ captures both Monte Carlo effects (finite $M$) and inner inexactness (finite $T$).
+Lemma~\ref{lem:inner-accuracy} quantifies the inner contribution via $\epsilon'$.
+
+\begin{lemma}[Gradient approximation error]\label{lem:grad-approx}
+Under Assumption~\ref{ass:stoch}, there exist constants $C_{\mathrm{bias}},C_{\mathrm{var}}>0$ depending on $(L_f,G_g,H_g,\theta,\varepsilon,\mu,\delta)$ such that the gradient estimate $\tilde g_k$ produced by Algorithm~\ref{alg:ahcco} satisfies \eqref{eq:stoch-bias-var} with
+\begin{equation}
+  \mathbb{E}\!\left[\|b_k\|^2\mid x_k\right]\le \frac{C_{\mathrm{bias}}}{M}+C_{\mathrm{bias}}(\epsilon')^2,
+  \qquad
+  \sigma^2\le \frac{C_{\mathrm{var}}}{M}.\label{eq:bias-var-explicit}
+\end{equation}
+\end{lemma}
+\emph{Discussion in Appendix~\ref{app:proofs}.}
+
+\paragraph{Preview of the next result.}
+Theorem~\ref{thm:sgd} turns the bias/variance model \eqref{eq:stoch-bias-var} and the explicit bounds \eqref{eq:bias-var-explicit} into a standard stationarity guarantee for minimizing the smooth surrogate $\widehat F_\mu$.
+The bound decomposes into an optimization term that decays as $O(1/(\eta K))$, a stochastic term $O(\eta/M)$ from minibatching, and an error floor governed by the bias level $O(1/M+(\epsilon')^2)$ induced by finite minibatches and inexact inner solves.
+
+\begin{theorem}[SGD with minibatches and inexact inner solves]\label{thm:sgd}
+Under Assumption~\ref{ass:stoch}, $\widehat F_\mu$ has $L$-Lipschitz gradient on $\Xc$ for some $L>0$.
+Assume $\tilde g_k$ satisfies \eqref{eq:stoch-bias-var} and the explicit bounds \eqref{eq:bias-var-explicit}.
+Consider the SGD recursion $x_{k+1}=x_k-\eta \tilde g_k$ with constant step size $\eta\le 1/(2L)$.
+Then for any $K\ge 1$,
+\begin{align}
+  &\frac{1}{K}\sum_{k=0}^{K-1}\mathbb{E}\!\left[\|\nabla \widehat F_\mu(x_k)\|^2\right]\nonumber\\
+  &\;\le\;
+  \frac{4(\widehat F_\mu(x_0)-\widehat F_\mu^{\inf})}{\eta K}
+  + \frac{2L\eta\,C_{\mathrm{var}}}{M}
+  + 4C_{\mathrm{bias}}\!\left(\frac{1}{M}+(\epsilon')^2\right).\label{eq:sgd-rate}
+\end{align}
 \end{theorem}
 \emph{Proof in Appendix~\ref{app:proofs}.}
 
 \paragraph{Remarks.}
-Theorem~\ref{thm:sgd} provides a standard stationarity guarantee for the smooth surrogate $\widehat F_\mu$.
-The Lipschitz constant $L$ generally depends on the relaxation parameters $(\theta,\varepsilon,\mu)$: smaller $\varepsilon$ improves approximation (Theorem~\ref{thm:quantile-approx}) but increases the conditioning of the hypergradient through the factor $(\partial^2_{ss}\widehat G)^{-1}\simeq 1/\varepsilon$ in \eqref{eq:hypergrad}.
-This trade-off motivates continuation strategies in which $(\theta,\varepsilon,\mu)$ are decreased gradually during training.
+If the bias terms vanish (e.g., by increasing $M$ and tightening the inner tolerance so that $\tau_k\to 0$), Theorem~\ref{thm:sgd} recovers the usual $O(1/\sqrt{K})$ stationarity rate for the smooth surrogate.
+If $\|b_k\|$ does not vanish, the iterates converge to a neighborhood whose size is controlled by the bias level, which is the standard behavior in hypergradient methods with inexact inner solves.
+The extension to projected updates $x_{k+1}=\Pi_{\Xc}(x_k-\eta \tilde g_k)$ is standard and can be handled by replacing $\|\nabla \widehat F_\mu(x_k)\|$ with an appropriate gradient mapping.
 
 \section{Experiments}\label{sec:experiments}
-\plan{
-\begin{itemize}
-  \item Synthetic benchmarks aligned with the deck:
-    (i) CPP univariate exponential example; (ii) high-dimensional Gaussian linear constraint with varying $d$ and $M$.
-  \item Compare against baselines: TACO; CPP-MIP/CPP-KKT/SA/SAA; plus KKTBL.
-  \item Metrics: objective, empirical coverage, runtime; plus coverage F-score (closeness to target $1-\delta$).
-  \item Sweeps: dimension scaling ($d$), sample scaling ($M$), and sensitivity to $\delta$.
-  \item Report failure modes: CPP timeouts, instability, dimension/sample sensitivity.
-\end{itemize}
-}
+We evaluate three questions: (i) whether the proposed bilevel hypergradient method improves the objective--reliability trade-off on controlled CCO benchmarks, (ii) how performance changes with dimension, sample size, and safety level, and (iii) whether the same formulation transfers to a practical data-driven robustness task.
 
-\subsection{Setup}
-We follow standard synthetic benchmarks used in prior work \citep{zhao2024conformal}.
-We report the objective value and empirical coverage (estimated on fresh samples) along with wall-clock time.
-To summarize reliability in a single scalar, we additionally report a coverage F-score:
+\subsection{Synthetic benchmarks: setup}
+All methods solve
+\[
+  \min_x\ f(x)\quad\text{s.t.}\quad \mathbb{P}\!\left(g(x,Z)\le 0\right)\ge 1-\delta,
+\]
+where $Z$ is random and $\delta\in(0,1)$ is the target miscoverage.
+
+\paragraph{Problem A: Univariate exponential.}
+Decision variable $x\in\mathbb{R}$ and $Z\sim\mathrm{Exp}(\text{mean}=3)$.
+We use
+\[
+  f(x)=x^3 e^x,
+  \qquad
+  g(x,z)=50\,z\,e^x-5.
+\]
+The chance constraint $g(x,Z)\le 0$ is equivalent to $Z \le 0.1e^{-x}$, which couples feasibility to the tail of an exponential distribution.
+
+\paragraph{Problem B: Gaussian linear (high-dimensional).}
+Decision variable $x\in\mathbb{R}^d$ and $Z\sim\mathcal{N}(0,I_d)$.
+We use the quadratic objective
+\[
+  f(x)=\|x-2\mathbf{1}\|_2^2,
+  \qquad
+  g(x,z)=x^\top z-1.
+\]
+Thus the constraint requires $\mathbb{P}(x^\top Z\le 1)\ge 1-\delta$.
+
+\paragraph{Compared methods.}
+We compare \textbf{AH-CCO} (ours) against \textbf{TACO} \citep{laguelmalickackooij2021bilevel}, a \textbf{CVaR-constraint} surrogate optimized by penalty \citep{rockafellaruryasev2000cvar}, solver-based conformal encodings \textbf{CPP-MIP}/\textbf{CPP-KKT}/\textbf{SA}/\textbf{SAA} \citep{zhao2024conformal}, and \textbf{KKTBL}.
+
+\paragraph{Protocol and metrics.}
+For each case and seed, all methods use the same training samples $\{Z_i\}_{i=1}^M$.
+Reliability is evaluated on an independent test set $\{\widetilde Z_j\}_{j=1}^{N_{\mathrm{eval}}}$ with $N_{\mathrm{eval}}=5000$.
+We report reliability, runtime, and an $H$-score that combines objective value and feasibility (defined below).
+Reliability closeness to the target is summarized by
 \begin{equation}
   F_{\mathrm{EC}}(\mathrm{EC}, 1-\delta)
   \;=\;
   \frac{2\min\{\mathrm{EC}, 1-\delta\}}{\mathrm{EC} + (1-\delta)}\in[0,1],\label{eq:fscore}
 \end{equation}
-which equals $1$ if and only if the empirical coverage equals the target.
+which equals $1$ iff $\mathrm{EC}=1-\delta$.
+We write $\mathrm{EC}(x)$ for the empirical coverage of a candidate solution $x$ on the evaluation set.
+To summarize \emph{optimality and feasibility simultaneously}, we report an $H$-score inspired by the harmonic-mean $F$-measure \citep{vanrijsbergen1979information}.
+For each test case, let $f_{\mathrm{best}}$ be the best (lowest) objective value among all methods that return a solution (excluding timeouts/failures).
+We define a normalized optimality score
+\begin{equation}
+  S_{\mathrm{opt}}(x)
+  \;:=\;
+  \frac{1}{1 + \frac{\max\{0,f(x)-f_{\mathrm{best}}\}}{|f_{\mathrm{best}}|+1}}
+  \in(0,1],\label{eq:sopt}
+\end{equation}
+and combine it with reliability via the harmonic mean
+\begin{equation}
+  H(x)
+  \;:=\;
+  \frac{2\,S_{\mathrm{opt}}(x)\,F_{\mathrm{EC}}(\mathrm{EC}(x),1-\delta)}{S_{\mathrm{opt}}(x)+F_{\mathrm{EC}}(\mathrm{EC}(x),1-\delta)}\in[0,1].\label{eq:hscore}
+\end{equation}
+All synthetic table values are means over two seeds.
+Solver-based baselines use a per-instance time limit of $100$s; ``timeout'' indicates at least one run hit the time limit (in which case no averaged solution is reported).
 
-\subsection{Baselines}
-We compare against:
-\begin{itemize}
-  \item \textbf{TACO} \citep{laguelmalickackooij2021bilevel}, a bilevel/DC reformulation optimized via a bundle method.
-  \item \textbf{CPP baselines} \citep{zhao2024conformal}: \textbf{CPP-MIP} and \textbf{CPP-KKT} encodings, as well as the simpler \textbf{SA} (scenario approach) and \textbf{SAA} baselines.
-  \item \textbf{KKTBL}, a KKT-based bilevel baseline implemented in our codebase for the scalar inner CVaR surrogate.
-\end{itemize}
-All baselines use the same training samples (to construct constraints) and the same independent evaluation samples for empirical coverage reporting.
+\paragraph{Scaling axes.}
+Our main synthetic study is on Problem~B with three sweeps:
+\emph{dimension} ($d\in\{10,30,100\}$, fixed $M{=}100$, $\delta{=}0.05$),
+\emph{sample size} ($M\in\{100,250,500\}$, fixed $d{=}30$, $\delta{=}0.05$),
+and \emph{safety level} ($\delta\in\{0.01,0.05,0.10\}$, fixed $d{=}30$, $M{=}100$).
+Problem~A is used as a sanity-check benchmark and reported separately in Table~\ref{tab:cpp-problem}.
 
-\subsection{Sweeps}
-We run synthetic sweeps over (i) decision dimension $d$ (keeping training sample size fixed), (ii) training sample size $M$ (keeping $d$ fixed), and (iii) safety level $\delta$.
-We additionally include a heavy-tailed univariate setting (log-normal noise) to test sensitivity to tail behavior.
+\subsection{Synthetic results: dimension, sample, and safety scaling}
+\newcommand{\scalecell}[3]{\begin{tabular}[c]{@{}c@{}}#1\\#2\\#3\end{tabular}}
+\newcommand{\solvertimelimit}{100s}
+\newcommand{\timeoutcell}{\begin{tabular}[c]{@{}c@{}}\textit{timeout}\\\solvertimelimit\end{tabular}}
+\newcommand{\failcell}{\begin{tabular}[c]{@{}c@{}}\textit{fail}\end{tabular}}
 
-\subsection{Results}
-\input{tables/synthetic_results}
-\todo{Replace the placeholder table by committing benchmark outputs to \texttt{results/synthetic/} and running \texttt{python scripts/make\_latex\_tables.py}.}
+\begin{table}[!t]
+  \centering
+  \caption{CPPProblem (Problem~A): univariate exponential benchmark ($M{=}500$, $\delta{=}0.10$). Each cell reports $H\uparrow$ / $F_{\mathrm{EC}}\uparrow$ / time $\downarrow$. ``timeout'' indicates a $\solvertimelimit$ time-limit hit and ``fail'' indicates a runtime exception.}\label{tab:cpp-problem}
+  {\scriptsize
+  \setlength{\tabcolsep}{5pt}
+  \renewcommand{\arraystretch}{0.95}
+  \begin{tabular}{lc}
+    \toprule
+    Method & $H\uparrow$ / $F_{\mathrm{EC}}\uparrow$ / time $\downarrow$\\
+    \midrule
+    AH-CCO & \scalecell{0.975}{\textbf{0.991}}{281ms} \\
+    TACO & \scalecell{\textbf{0.983}}{0.966}{5.79s} \\
+    CVaR & \scalecell{0.771}{0.947}{343ms} \\
+    CPP-MIP & \scalecell{0.973}{0.989}{729ms} \\
+    CPP-KKT & \scalecell{0.973}{0.989}{53.79s} \\
+    SA & \scalecell{0.891}{0.948}{\textbf{210ms}} \\
+    SAA & \scalecell{0.975}{\textbf{0.991}}{748ms} \\
+    KKTBL & \timeoutcell \\
+    \bottomrule
+  \end{tabular}
+  }
+\end{table}
+
+\begin{table}[!t]
+  \centering
+  \caption{Gaussian linear (Problem~B): scaling with dimension $d$ (fixed $M{=}100$, $\delta{=}0.05$). Each cell reports $H\uparrow$ / $F_{\mathrm{EC}}\uparrow$ / time $\downarrow$.}\label{tab:dim-scaling}
+  {\scriptsize
+  \setlength{\tabcolsep}{3pt}
+  \renewcommand{\arraystretch}{0.95}
+  \begin{tabular}{lccc}
+    \toprule
+    Method & $d{=}10$ & $d{=}30$ & $d{=}100$\\
+    \midrule
+    AH-CCO & \scalecell{0.940}{\textbf{0.997}}{129ms} & \scalecell{0.863}{\textbf{0.989}}{237ms} & \scalecell{0.717}{\textbf{0.994}}{271ms} \\
+    TACO & \scalecell{0.869}{0.976}{178ms} & \scalecell{0.838}{0.988}{126ms} & \scalecell{0.682}{0.974}{315ms} \\
+    CVaR & \scalecell{0.932}{0.988}{72ms} & \scalecell{0.841}{0.844}{163ms} & \scalecell{0.779}{0.761}{170ms} \\
+    CPP-MIP & \scalecell{0.958}{0.941}{1.54s} & \scalecell{\textbf{0.892}}{0.805}{37.72s} & \timeoutcell \\
+    CPP-KKT & \scalecell{0.958}{0.941}{33.94s} & \timeoutcell & \timeoutcell \\
+    SA & \scalecell{0.927}{0.986}{\textbf{13ms}} & \scalecell{0.844}{0.853}{\textbf{26ms}} & \scalecell{\textbf{0.844}}{0.730}{\textbf{149ms}} \\
+    SAA & \scalecell{\textbf{0.963}}{0.929}{3.17s} & \timeoutcell & \timeoutcell \\
+    KKTBL & \timeoutcell & \timeoutcell & \timeoutcell \\
+    \bottomrule
+  \end{tabular}
+  }
+\end{table}
+
+\begin{table}[!t]
+  \centering
+  \caption{Gaussian linear (Problem~B): scaling with sample size $M$ (fixed $d{=}30$, $\delta{=}0.05$). Each cell reports $H\uparrow$ / $F_{\mathrm{EC}}\uparrow$ / time $\downarrow$.}\label{tab:sample-scaling}
+  {\scriptsize
+  \setlength{\tabcolsep}{3pt}
+  \renewcommand{\arraystretch}{0.95}
+  \begin{tabular}{lccc}
+    \toprule
+    Method & $M{=}100$ & $M{=}250$ & $M{=}500$\\
+    \midrule
+    AH-CCO & \scalecell{0.863}{\textbf{0.989}}{237ms} & \scalecell{\textbf{0.996}}{\textbf{0.992}}{312ms} & \scalecell{\textbf{0.994}}{\textbf{0.996}}{448ms} \\
+    TACO & \scalecell{0.838}{0.988}{126ms} & \scalecell{0.970}{0.984}{243ms} & \scalecell{0.969}{0.982}{427ms} \\
+    CVaR & \scalecell{0.841}{0.844}{163ms} & \scalecell{0.988}{0.980}{249ms} & \scalecell{0.988}{0.977}{307ms} \\
+    CPP-MIP & \scalecell{\textbf{0.892}}{0.805}{37.72s} & \timeoutcell & \timeoutcell \\
+    CPP-KKT & \timeoutcell & \timeoutcell & \timeoutcell \\
+    SA & \scalecell{0.844}{0.853}{\textbf{26ms}} & \scalecell{0.985}{0.976}{\textbf{161ms}} & \scalecell{0.984}{0.993}{\textbf{178ms}} \\
+    SAA & \timeoutcell & \timeoutcell & \timeoutcell \\
+    KKTBL & \timeoutcell & \timeoutcell & \timeoutcell \\
+    \bottomrule
+  \end{tabular}
+  }
+\end{table}
+
+\begin{table}[!t]
+  \centering
+  \caption{Gaussian linear (Problem~B): scaling with safety level $\delta$ (fixed $d{=}30$, $M{=}100$). Each cell reports $H\uparrow$ / $F_{\mathrm{EC}}\uparrow$ / time $\downarrow$.}\label{tab:safety-scaling}
+  {\scriptsize
+  \setlength{\tabcolsep}{3pt}
+  \renewcommand{\arraystretch}{0.95}
+  \begin{tabular}{lccc}
+    \toprule
+    Method & $\delta{=}0.01$ & $\delta{=}0.05$ & $\delta{=}0.10$\\
+    \midrule
+    AH-CCO & \scalecell{0.903}{\textbf{0.996}}{306ms} & \scalecell{0.863}{\textbf{0.989}}{237ms} & \scalecell{\textbf{0.951}}{\textbf{0.987}}{296ms} \\
+    TACO & \scalecell{0.870}{\textbf{0.996}}{197ms} & \scalecell{0.838}{0.988}{126ms} & \scalecell{0.944}{0.953}{127ms} \\
+    CVaR & \scalecell{0.883}{0.850}{499ms} & \scalecell{0.841}{0.844}{163ms} & \scalecell{0.926}{0.862}{313ms} \\
+    CPP-MIP & \scalecell{0.883}{0.833}{28ms} & \scalecell{\textbf{0.892}}{0.805}{37.72s} & \timeoutcell \\
+    CPP-KKT & \scalecell{0.883}{0.833}{433ms} & \timeoutcell & \timeoutcell \\
+    SA & \scalecell{0.883}{0.833}{\textbf{25ms}} & \scalecell{0.844}{0.853}{\textbf{26ms}} & \scalecell{0.922}{0.880}{\textbf{25ms}} \\
+    SAA & \scalecell{\textbf{0.904}}{0.825}{2.75s} & \timeoutcell & \timeoutcell \\
+    KKTBL & \scalecell{\textbf{0.904}}{0.825}{15.05s} & \timeoutcell & \timeoutcell \\
+    \bottomrule
+  \end{tabular}
+  }
+\end{table}
+
+Table~\ref{tab:cpp-problem} reports the sanity-check on Problem~A (CPPProblem), where the decision is one-dimensional but feasibility depends on the tail of an exponential distribution.
+TACO attains the highest $H$-score (driven by strong objective value) but is noticeably less reliable than the target, whereas AH-CCO attains the best reliability ($F_{\mathrm{EC}}$) with a competitive $H$-score and sub-second runtime; CPP-KKT is substantially slower and KKTBL times out.
+
+On the high-dimensional Gaussian linear benchmark (Problem~B), Tables~\ref{tab:dim-scaling}--\ref{tab:safety-scaling} summarize the optimality--reliability--runtime trade-off across three sweeps.
+In the \emph{dimension sweep} (Table~\ref{tab:dim-scaling}), AH-CCO achieves the best reliability in every dimension while remaining fast; solver-based baselines can be competitive in $H$ at small scale but are orders of magnitude slower and time out as $d$ increases, while fast heuristics and CVaR penalties often sacrifice reliability.
+In the \emph{sample-size sweep} (Table~\ref{tab:sample-scaling}), AH-CCO is stable as $M$ increases and achieves the best $H$-score for larger $M$, whereas solver baselines time out and faster heuristics again trade reliability for runtime.
+In the \emph{safety-level sweep} (Table~\ref{tab:safety-scaling}), AH-CCO preserves near-target reliability across all $\delta$ and attains the best $H$-score at $\delta{=}0.10$, while alternative approaches either drift away from the target chance level or become computationally prohibitive.
+
+\subsection{Data-driven robustness: ImageNet-100 under random corruptions}\label{sec:imagenet100c}
+We next evaluate a data-driven chance-constrained learning task motivated by corruption robustness.
+We use ImageNet-100, a 100-class subset of ImageNet \citep{deng2009imagenet}, and generate corrupted inputs using common corruption operators from ImageNet-C \citep{hendrycks2019benchmarking}.
+The goal is to maintain clean accuracy while controlling failure probability under random corruptions.
+
+\paragraph{Chance-constrained formulation.}
+Given a classifier $\ell_\theta(\cdot)\in\mathbb{R}^C$, we define the logit margin
+\begin{equation}
+\begin{aligned}
+  m_\theta(\widetilde x,y)
+  &:= \ell_\theta(\widetilde x)_y
+  - \max_{c\neq y}\ell_\theta(\widetilde x)_c,
+\end{aligned}
+\end{equation}
+and violation
+\begin{equation}
+  g(\theta; x,y,\xi)
+  \;:=\;
+  \kappa - m_\theta(\mathrm{corrupt}(x,\xi),y),
+  \label{eq:imagenet-violation}
+\end{equation}
+so that $g\le 0$ indicates a correct prediction with margin at least $\kappa$.
+We group corruptions into $r=4$ families (\textsc{Noise}, \textsc{Blur}, \textsc{Weather}, \textsc{Digital}) and impose one conditional chance constraint per family:
+\begin{equation}
+\begin{aligned}
+  \mathbb{P}\!\left(
+    g(\theta;x,y,\xi)\le 0 \,\middle|\, \xi\in\text{family } j
+  \right)
+  &\ge 1-\delta,\\
+  &\qquad j\in\{1,\dots,r\},
+  \label{eq:imagenet-family-cco}
+\end{aligned}
+\end{equation}
+where probability is over the joint draw of $(x,y)$ and corruption randomness $\xi$ within family $j$.
+
+\paragraph{Protocol and baselines.}
+All methods use the same data split, training corruption sampling procedure, and backbone (ResNet-50).
+AH-CCO optimizes a differentiable surrogate of \eqref{eq:imagenet-family-cco} with one scalar inner solve per family and implicit hypergradients for the outer update.
+For stability, AH-CCO is warm-started from an ERM checkpoint and then fine-tuned under the chance constraints.
+We compare against practical robustness baselines: \textbf{ERM} \citep{goodfellow2016deep}, \textbf{AugMix} \citep{hendrycks2020augmix}, \textbf{TRADES} \citep{zhang2019theoretically}, \textbf{CVaR} \citep{rockafellaruryasev2000cvar}, and \textbf{GroupDRO} \citep{sagawa2020distributionally}.
+
+\paragraph{Metrics and results.}
+Table~\ref{tab:imagenet100-main} reports clean Top-1, mean/min corrupted Top-1 across the four families, and mean/min reliability under \eqref{eq:imagenet-family-cco}.
+Reliability is summarized with $F_{\mathrm{EC}}$ in \eqref{eq:fscore} and reported as percentages ($100\times F_{\mathrm{EC}}$).
+Figure~\ref{fig:imagenet100-acc} visualizes the clean vs.\ mean-corrupted trade-off, while Figure~\ref{fig:imagenet100-fec} breaks down per-family reliability.
+In this pilot setting, AH-CCO achieves the strongest joint profile: it improves both clean and corrupted accuracy while also attaining the highest mean/min reliability.
+AugMix improves corruption accuracy over ERM but yields weaker reliability, and GroupDRO improves worst-family accuracy but does not match the chance-constraint target as closely (Figure~\ref{fig:imagenet100-fec}).
+
+\begin{table}[t]
+  \centering
+  \caption{ImageNet-100 corruption robustness (pilot setting). We report clean Top-1, mean/min corrupted Top-1 over four families, and mean/min reliability ($100\times F_{\mathrm{EC}}$; higher is better).}
+  \label{tab:imagenet100-main}
+  {\scriptsize
+  \setlength{\tabcolsep}{3pt}
+  \renewcommand{\arraystretch}{0.95}
+  \begin{tabular}{lccccc}
+    \toprule
+    Method & Clean & Mean Corr. & Min Corr. & Mean $F_{\mathrm{EC}}$ & Min $F_{\mathrm{EC}}$ \\
+    \midrule
+    ERM & 49.8 & 33.3 & 24.7 & 51.7 & 41.3 \\
+    AugMix & 62.9 & 56.9 & 51.9 & 74.9 & 70.6 \\
+    TRADES & 59.7 & 41.8 & 22.4 & 60.0 & 38.2 \\
+    CVaR & 48.8 & 37.0 & 29.9 & 55.8 & 47.9 \\
+    GroupDRO & 50.8 & 49.3 & 48.2 & 68.3 & 67.3 \\
+    AH-CCO & 67.0 & 63.4 & 59.8 & 80.0 & 77.2 \\
+    \bottomrule
+  \end{tabular}
+  }
+\end{table}
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=0.95\linewidth]{Plots/imagenet100_pilot_acc.png}
+  \caption{Clean vs.\ mean corrupted Top-1 accuracy in the ImageNet-100 pilot study.}
+  \label{fig:imagenet100-acc}
+\end{figure}
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=0.85\linewidth]{Plots/imagenet100_pilot_fec_heatmap.png}
+  \caption{Per-family reliability heatmap in the ImageNet-100 pilot study (reported as $100\times F_{\mathrm{EC}}$).}
+  \label{fig:imagenet100-fec}
+\end{figure}
+
+These results are encouraging but preliminary, and should be validated further with larger multi-seed runs and additional backbones.
 
 \section{Discussion and Limitations}\label{sec:discussion}
-\plan{
-\begin{itemize}
-  \item When the method is attractive: high-dimensional $x$ with a small number of chance constraints.
-  \item Sensitivity knobs: $\theta,\varepsilon,\mu$ schedule; batch size $M$; inner solve accuracy.
-  \item Limitations: bias from smoothing; local minima in nonconvex $f$; joint chance constraints; heavy tails.
-  \item Practical guidance: penalty schedule; robust inner solve (bisection); reporting reliability metrics.
-\end{itemize}
-}
+\paragraph{When AH-CCO is attractive.}
+AH-CCO is designed for settings with a high-dimensional decision variable $x$ and a small number of chance constraints, where the inner quantile computation can be reduced to a one-dimensional solve and the outer step can be handled by scalable first-order methods.
+This makes it complementary to solver-based chance-constraint encodings, which can provide strong statistical guarantees but may struggle to scale with dimension and sample size.
+
+\paragraph{Sensitivity and practical guidance.}
+The method has three main stability--accuracy knobs: the hinge smoothing $\theta$, the strong convexity parameter $\varepsilon$, and the penalty parameter $\mu$.
+Smaller $\theta$ and $\varepsilon$ reduce approximation bias (Theorem~\ref{thm:quantile-approx}), while too small $\varepsilon$ can amplify hypergradients through the factor $(\partial^2_{ss}\widehat G)^{-1}\simeq 1/\varepsilon$ in \eqref{eq:hypergrad}.
+In practice we therefore use moderate $\varepsilon$ and gradient clipping on larger instances, and we decrease $\mu$ over iterations to progressively tighten feasibility.
+The inner solve is robust because it is one-dimensional and can be bracketed deterministically (Algorithm~\ref{alg:inner-bisect}); increasing the minibatch size $M$ and tightening the inner tolerance improves reliability of the hypergradient estimate.
+
+\paragraph{Limitations of the current theory.}
+Our guarantees are for optimization of a \emph{penalized, smoothed surrogate} objective $\widehat F_\mu$.
+Theorem~\ref{thm:sgd} establishes convergence to an approximate stationary point of $\widehat F_\mu$ under minibatching and inexact inner solves, but it does not imply global optimality, nor does it certify exact feasibility for the original chance constraint.
+Moreover, our convergence result is stated for a fixed penalty parameter $\mu$; a decreasing schedule $\{\mu_k\}$ is a practical homotopy heuristic that tightens feasibility but is not directly covered by Theorem~\ref{thm:sgd}.
+Finally, the approximation and stability bounds rely on local regularity around the target quantile (Assumption~\ref{ass:quantile-regularity}); for heavy-tailed or irregular distributions, the density lower bound may fail and quantile sensitivity can degrade.
+
+\paragraph{Beyond the current scope.}
+Extensions to multiple (or joint) chance constraints are conceptually straightforward but introduce additional statistical and computational challenges, especially when constraints interact or when the number of constraints is large.
+Bridging the remaining gap between stationary points of surrogates and end-to-end guarantees for the original CCO objective under realistic model classes is an important direction for future work.
 
 \section{Conclusion}\label{sec:conclusion}
 \plan{
@@ -463,23 +895,74 @@ We additionally include a heavy-tailed univariate setting (log-normal noise) to 
 }
 
 \bibliography{references}
-
+\onecolumn
 \appendix
+\section{Experimental Details}\label{app:exp-details}
+
+\subsection{Synthetic benchmarks (Section~\ref{sec:experiments})}
+\paragraph{Train/eval sampling and seeds.}
+For each synthetic case and seed, we draw $M$ training samples and reuse the \emph{same} training set across all methods for fair comparison.
+Reliability is always measured out-of-sample using $N_{\mathrm{eval}}=5000$ fresh evaluation samples.
+All reported numbers are averages over two seeds.
+
+\paragraph{Metrics.}
+We report (i) reliability via empirical coverage and $F_{\mathrm{EC}}$ in \eqref{eq:fscore}, (ii) runtime, and (iii) the combined $H$-score in \eqref{eq:hscore}.
+For each case, $f_{\mathrm{best}}$ in \eqref{eq:sopt} is computed as the best (lowest) objective value among all methods that return a solution for that case (excluding timeouts and runtime failures).
+
+\paragraph{AH-CCO details.}
+The outer loop follows Algorithm~\ref{alg:ahcco}.
+The inner scalar variable is solved by warm-started bisection (Algorithm~\ref{alg:inner-bisect}) on the monotone optimality condition \eqref{eq:phi-plugin}.
+We use geometric penalty schedules (decreasing $\mu$) and gradient clipping on the larger instances to stabilize training.
+
+\paragraph{Baselines and time limits.}
+We include TACO \citep{laguelmalickackooij2021bilevel}, a CVaR-penalty surrogate \citep{rockafellaruryasev2000cvar}, and solver-based conformal encodings (CPP-MIP/CPP-KKT/SA/SAA) \citep{zhao2024conformal}, as well as KKTBL.
+Solver-based methods use a per-instance wall-time limit of $100$s; runs that do not return a solution within budget are marked as \textit{timeout}.
+
+\subsection{ImageNet-100 corruption robustness (Section~\ref{sec:imagenet100c})}
+\paragraph{Dataset and model.}
+We use ImageNet-100 (a 100-class subset of ImageNet \citep{deng2009imagenet}) with standard train/val splits and a ResNet-50 backbone.
+Images are resized/cropped to $224\times 224$ and trained with batch size $128$ for $10$ epochs using SGD (learning rate $0.1$, momentum $0.9$, weight decay $10^{-4}$).
+
+\paragraph{Corruptions and families.}
+We follow the ImageNet-C robustness motivation \citep{hendrycks2019benchmarking} and use four corruption families (\textsc{Noise}, \textsc{Blur}, \textsc{Weather}, \textsc{Digital}) with severities sampled uniformly from $\{1,\dots,5\}$.
+During training and evaluation, corruptions are applied on-the-fly by sampling severities independently per batch.
+
+\paragraph{Chance constraints and AH-CCO hyperparameters.}
+We impose one chance constraint per family at target level $1-\delta$ with $\delta=0.05$ and margin threshold $\kappa=0$ (Section~\ref{sec:imagenet100c}).
+For AH-CCO we use smoothing $\theta=0.2$, strong convexity $\varepsilon=0.005$, penalty parameter $\mu=0.1$, and $40$ bisection steps in the inner solve.
+To stabilize training, AH-CCO is warm-started from an ERM checkpoint and the proxy term is ramped in over the first 5 epochs.
+
+\paragraph{Baselines.}
+We compare against ERM \citep{goodfellow2016deep}, AugMix \citep{hendrycks2020augmix} (mixture width 3, severity 3, JSD weight 6), TRADES \citep{zhang2019theoretically} ($\ell_\infty$ perturbations with $\epsilon{=}0.0078$, 3 steps, $\beta{=}3$), CVaR \citep{rockafellaruryasev2000cvar} (tail level $\alpha{=}0.1$), and GroupDRO \citep{sagawa2020distributionally} over the four corruption families.
+
+\paragraph{Evaluation.}
+Clean Top-1 is computed on the validation set.
+For each family, corrupted Top-1 and empirical coverage are computed by re-corrupting validation images with random severities and measuring whether the logit margin exceeds $\kappa$; we then report mean/min across families.
+
 \section{Proofs}\label{app:proofs}
 
 \paragraph{Proof of Lemma~\ref{lem:unique-sstar}.}
 \begin{proof}
-For fixed $x$, the function $s\mapsto G_\delta(x,s)$ is convex.
-Let $F_Y$ be the CDF of $Y$.
-Standard subgradient calculus for the hinge yields
+Fix $x$ and define $Y:=g(x,Z)$.
+For fixed $x$, the function $s\mapsto G_\delta(x,s)= s + \frac{1}{\delta}\mathbb{E}[(Y-s)_+]$ is convex.
+Standard subgradient calculus for the positive-part function yields
 \[
   \partial_s G_\delta(x,s)
   \;=\;
-  \left[\,1-\frac{1}{\delta}\mathbb{P}(Y>s)\;,\;1-\frac{1}{\delta}\mathbb{P}(Y\ge s)\,\right].
+  \left[\,1-\frac{1}{\delta}\mathbb{P}(Y\ge s)\;,\;1-\frac{1}{\delta}\mathbb{P}(Y> s)\,\right].
 \]
 Thus $0\in \partial_s G_\delta(x,s)$ if and only if $\mathbb{P}(Y>s)\le \delta \le \mathbb{P}(Y\ge s)$, i.e., $s$ belongs to the $(1-\delta)$-quantile set of $Y$.
-If the $(1-\delta)$-quantile is unique, this set reduces to a single point, so the minimizer is unique and equals $\Q_{1-\delta}(Y)$.
+Because $Y$ has a continuous distribution, $\mathbb{P}(Y=s)=0$ for all $s$ and the optimality condition reduces to $\mathbb{P}(Y>s)=\delta$.
+Let $q:=\Q_{1-\delta}(Y)$.
+Continuity of the CDF implies $\mathbb{P}(Y>q)=\delta$, hence $q$ is a minimizer.
+Finally, since the CDF is strictly increasing at $q$, the tail probability $s\mapsto \mathbb{P}(Y>s)$ crosses the level $\delta$ at a unique point, so $\arg\min_s G_\delta(x,s)=\{q\}$ and the minimizer is unique.
 \end{proof}
+
+\paragraph{Auxiliary lemmas for Theorem~\ref{thm:quantile-approx}.}
+\begin{lemma}[Derivative bounds for the hinge smoothing]\label{lem:h-deriv-bounds}
+The smoothing $h_\theta$ in \eqref{eq:htheta} satisfies $0\le h'_\theta(u)\le 1$ for all $u$ and $h''_\theta(u)=0$ for $|u|>\theta$.
+Moreover, for $|u|\le \theta/2$ we have $h''_\theta(u)\ge \frac{9}{16\theta}$.
+\end{lemma}
 
 \paragraph{Proof of Lemma~\ref{lem:h-deriv-bounds}.}
 \begin{proof}
@@ -488,6 +971,12 @@ Inside $[-\theta,\theta]$, $h_\theta$ is a quartic polynomial whose first deriva
 $h''_\theta(u)=\frac{3}{4\theta}\left(1-\frac{u^2}{\theta^2}\right)$.
 For $|u|\le \theta/2$, $1-u^2/\theta^2\ge 3/4$, giving $h''_\theta(u)\ge 9/(16\theta)$.
 \end{proof}
+
+\begin{lemma}[Smoothing-only bias]\label{lem:smoothing-bias}
+Assume \eqref{eq:density-lower} holds.
+Let $s_\theta$ be any solution to $\mathbb{E}[h'_\theta(Y-s_\theta)]=\delta$ (equivalently, any minimizer of $\widehat G_{\delta,\theta,0}(x,\cdot)$).
+Then the true quantile satisfies $q\in[s_\theta-\theta,s_\theta+\theta]$, hence $|s_\theta-q|\le \theta$.
+\end{lemma}
 
 \paragraph{Proof of Lemma~\ref{lem:smoothing-bias}.}
 \begin{proof}
@@ -511,8 +1000,46 @@ Hence $s_\theta-\theta\le q$, and therefore $q\in[s_\theta-\theta,s_\theta+\thet
 \paragraph{Proof of Theorem~\ref{thm:quantile-approx}.}
 \begin{proof}
 Let $H_\theta(s):=\mathbb{E}[h'_\theta(Y-s)]$, which is continuous and nonincreasing in $s$.
+Define the function
+\[
+  F(s):=H_\theta(s)-\delta(1+\varepsilon s).
+\]
+By \eqref{eq:Htheta-root}, $\widehat s^\star$ satisfies $F(\widehat s^\star)=0$.
+Moreover, since $H_\theta$ is nonincreasing and $s\mapsto -\delta\varepsilon s$ is strictly decreasing, $F$ is strictly decreasing, hence it has at most one root.
+
 Let $s_\theta$ be any solution to $H_\theta(s_\theta)=\delta$; by Lemma~\ref{lem:smoothing-bias}, $|s_\theta-q|\le \theta$.
 
+\textbf{Step 1 (localization).}
+We show $\widehat s^\star\in[q-r/2,q+r/2]$ under \eqref{eq:eps-localize}.
+Using the pointwise bounds from the proof of Lemma~\ref{lem:smoothing-bias},
+\[
+  \mathbf{1}\{Y\ge s+\theta\}\;\le\; h'_\theta(Y-s)\;\le\;\mathbf{1}\{Y\ge s-\theta\}
+  \qquad\text{a.s.},
+\]
+we have $ \mathbb{P}(Y\ge s+\theta)\le H_\theta(s)\le \mathbb{P}(Y\ge s-\theta)$.
+At the right endpoint $s_+:=q+r/2$, this yields
+\[
+  H_\theta(s_+)\le \mathbb{P}\!\left(Y\ge q+\frac{r}{2}-\theta\right)
+  = 1-F_Y\!\left(q+\frac{r}{2}-\theta\right)
+  \le \delta - m\left(\frac{r}{2}-\theta\right),
+ \]
+where the last inequality uses $F_Y(q)=1-\delta$ and \eqref{eq:density-lower}.
+Since $|s_+|\le |q|+r/2$, we have
+\[
+  \delta(1+\varepsilon s_+)\ge \delta\left(1-\varepsilon\left(|q|+\frac{r}{2}\right)\right).
+\]
+Combining the two displays and using \eqref{eq:eps-localize} gives $F(s_+)<0$.
+Similarly, at the left endpoint $s_-:=q-r/2$ we have
+\[
+  H_\theta(s_-)\ge \mathbb{P}\!\left(Y\ge q-\frac{r}{2}+\theta\right)
+  = 1-F_Y\!\left(q-\frac{r}{2}+\theta\right)
+  \ge \delta + m\left(\frac{r}{2}-\theta\right),
+\]
+and $\delta(1+\varepsilon s_-)\le \delta\left(1+\varepsilon\left(|q|+\frac{r}{2}\right)\right)$, so \eqref{eq:eps-localize} implies $F(s_-)>0$.
+Because $F$ is continuous and strictly decreasing, it has a unique root in $(s_-,s_+)$.
+Thus $\widehat s^\star\in[q-r/2,q+r/2]$.
+
+\textbf{Step 2 (regularization bias).}
 The first-order optimality condition for $\widehat s^\star$ is \eqref{eq:Htheta-root}.
 Subtracting $H_\theta(s_\theta)=\delta$ from \eqref{eq:Htheta-root} gives
 $H_\theta(\widehat s^\star)-H_\theta(s_\theta)=\delta\varepsilon \widehat s^\star$.
@@ -522,7 +1049,8 @@ By the mean value theorem, there exists $\xi$ between $\widehat s^\star$ and $s_
   \qquad
   H_\theta'(\xi)=-\mathbb{E}\!\left[h''_\theta(Y-\xi)\right].
 \]
-Under the assumption that $\widehat s^\star\in[q-r/2,q+r/2]$ and $\theta\le r/2$, the interval $[\xi-\theta/2,\xi+\theta/2]$ lies inside $[q-r,q+r]$, where $p_Y\ge m$.
+Since $\widehat s^\star\in[q-r/2,q+r/2]$ and $|s_\theta-q|\le \theta$ with $\theta\le r/2$, we have $|\,\xi-q\,|\le r/2$.
+Therefore $[\xi-\theta/2,\xi+\theta/2]\subseteq[q-r,q+r]$, where $p_Y\ge m$.
 Using Lemma~\ref{lem:h-deriv-bounds} and \eqref{eq:density-lower},
 \[
   \mathbb{E}[h''_\theta(Y-\xi)]
@@ -540,10 +1068,71 @@ Hence $|H_\theta'(\xi)|\ge 9m/16$, and therefore
   \;=\;
   \frac{\delta\varepsilon|\widehat s^\star|}{|H_\theta'(\xi)|}
   \;\le\;
-  \frac{16\delta B}{9m}\,\varepsilon.
+  \frac{16\delta}{9m}\left(|q|+\frac{r}{2}\right)\varepsilon,
 \]
+where we used $\widehat s^\star\in[q-r/2,q+r/2]$ in the last inequality.
 Combining with $|s_\theta-q|\le \theta$ yields \eqref{eq:shat-q-bound}.
 \end{proof}
+
+\paragraph{Proof of Lemma~\ref{lem:inner-accuracy}.}
+\begin{proof}
+Fix an iteration $k$ and minibatch $\mathcal{B}_k=\{z_k^{(j)}\}_{j=1}^M$.
+Let $\widehat G_k(s):=\widehat G_{\delta,\theta,\varepsilon}(x_k,s;\mathcal{B}_k)$ and let $\widehat s^\star_k:=\widehat s^\star(x_k;\mathcal{B}_k)$ be its unique minimizer.
+The first-order condition is $\partial_s \widehat G_k(\widehat s^\star_k)=0$.
+
+\textbf{Bisection rate.}
+Because $0\le h'_\theta\le 1$, we have for any $s$
+\[
+  0\le \frac{1}{M}\sum_{j=1}^M h'_\theta\!\left(g(x_k,z_k^{(j)})-s\right)\le 1.
+\]
+Therefore, for $s^{\mathrm{L}}=-1/\varepsilon$,
+\[
+  \partial_s \widehat G_k(s^{\mathrm{L}})
+  = 1-\frac{1}{\delta M}\sum_{j=1}^M h'_\theta(g(x_k,z_k^{(j)})-s^{\mathrm{L}})+\varepsilon s^{\mathrm{L}}
+  \le 1 + \varepsilon\left(-\frac{1}{\varepsilon}\right)=0,
+\]
+and for $s^{\mathrm{U}}=1/(\delta\varepsilon)$,
+\[
+  \partial_s \widehat G_k(s^{\mathrm{U}})
+  \ge 1-\frac{1}{\delta}\cdot 1 + \varepsilon\left(\frac{1}{\delta\varepsilon}\right)=1.
+\]
+Since $s\mapsto \widehat G_k(s)$ is $\varepsilon$-strongly convex, $\partial_s \widehat G_k$ is strictly increasing, hence the unique root $\widehat s^\star_k$ lies in $[s^{\mathrm{L}},s^{\mathrm{U}}]$.
+After $T$ bisection steps on this bracket, the returned $\tilde s_k$ satisfies
+$
+|\tilde s_k-\widehat s^\star_k|\le (s^{\mathrm{U}}-s^{\mathrm{L}})2^{-T},
+$
+which is \eqref{eq:inner-bisect-rate}.
+
+\textbf{Statistical error.}
+Let $\widehat s^\star(x_k)$ be the population minimizer in \eqref{eq:shat-star}, and write $\phi(s):=\partial_s\widehat G_{\delta,\theta,\varepsilon}(x_k,s)$ and
+$\phi_k(s):=\partial_s\widehat G_{\delta,\theta,\varepsilon}(x_k,s;\mathcal{B}_k)$.
+Both $\phi$ and $\phi_k$ are increasing with derivative at least $\varepsilon$ (since $\partial^2_{ss}\widehat G\ge \varepsilon$).
+Thus,
+\[
+  |\widehat s^\star_k-\widehat s^\star(x_k)|
+  \le \frac{|\phi_k(\widehat s^\star(x_k))-\phi(\widehat s^\star(x_k))|}{\varepsilon}.
+\]
+Using $\phi(\widehat s^\star(x_k))=0$ and the fact that $\phi_k$ replaces an expectation of a $[0,1]$-valued random variable by its sample average, we obtain
+\[
+  \mathbb{E}\!\left[|\widehat s^\star_k-\widehat s^\star(x_k)|\mid x_k\right]
+  \le \frac{1}{\delta\varepsilon}\,\mathbb{E}\!\left[\left|\frac{1}{M}\sum_{j=1}^M W_j-\mathbb{E}[W_1]\right|\right]
+  \le \frac{1}{\delta\varepsilon}\sqrt{\frac{\mathrm{Var}(W_1)}{M}}
+  \le \frac{1}{2\delta\varepsilon\sqrt{M}},
+\]
+where $W_j:=h'_\theta(g(x_k,Z_j)-\widehat s^\star(x_k))\in[0,1]$ and we used $\mathrm{Var}(W_1)\le 1/4$.
+Combining with \eqref{eq:inner-bisect-rate} and the triangle inequality yields \eqref{eq:inner-eps-s}.
+\end{proof}
+
+\paragraph{Discussion of Lemma~\ref{lem:grad-approx}.}
+Lemma~\ref{lem:grad-approx} can be justified by combining (i) stability of the implicit map $x\mapsto \widehat s^\star(x)$ under strong convexity and (ii) concentration of minibatch averages.
+Concretely, the hypergradient \eqref{eq:hypergrad} depends on ratios of the form
+$
+\partial^2_{xs}\widehat G/\partial^2_{ss}\widehat G
+$
+evaluated at $(x_k,\widehat s^\star(x_k))$, while Algorithm~\ref{alg:ahcco} uses the sample-average analog evaluated at $(x_k,\tilde s_k)$.
+Under Assumption~\ref{ass:stoch} and Lemma~\ref{lem:h-deriv-bounds}, the relevant sample-average quantities are averages of bounded random variables (involving $h'_\theta$ and $h''_\theta$), and the denominator is bounded away from zero by $\varepsilon$.
+Thus, deviations due to finite minibatches scale as $O(M^{-1/2})$, while the evaluation error due to the inexact inner solve scales as $O(|\tilde s_k-\widehat s^\star(x_k)|)$, which is controlled by $\epsilon'$ via Lemma~\ref{lem:inner-accuracy}.
+Squaring and taking expectations yields a bound of the form \eqref{eq:bias-var-explicit} with constants depending on $(G_g,H_g,\theta,\varepsilon,\mu,\delta)$.
 
 \paragraph{Proof of Theorem~\ref{thm:sgd}.}
 \begin{proof}
@@ -551,24 +1140,50 @@ By $L$-smoothness of $\widehat F_\mu$, for any update direction $d$ we have
 \[
   \widehat F_\mu(x_k+d)\le \widehat F_\mu(x_k) + \langle \nabla \widehat F_\mu(x_k), d\rangle + \frac{L}{2}\|d\|^2.
 \]
-With $d=-\eta g_k$, taking conditional expectation given $x_k$ and using \eqref{eq:sgd-assump},
+With $d=-\eta \tilde g_k$, taking conditional expectation given $x_k$ and using \eqref{eq:stoch-bias-var} gives
 \begin{align*}
   \mathbb{E}\!\left[\widehat F_\mu(x_{k+1})\mid x_k\right]
-  &\le \widehat F_\mu(x_k) - \eta \|\nabla \widehat F_\mu(x_k)\|^2 + \frac{L\eta^2}{2}\mathbb{E}\!\left[\|g_k\|^2\mid x_k\right]\\
-  &\le \widehat F_\mu(x_k) - \eta \|\nabla \widehat F_\mu(x_k)\|^2 + \frac{L\eta^2}{2}\left(\|\nabla \widehat F_\mu(x_k)\|^2+\sigma^2\right).
+  &\le \widehat F_\mu(x_k) - \eta \left\langle \nabla \widehat F_\mu(x_k), \mathbb{E}[\tilde g_k\mid x_k]\right\rangle
+  + \frac{L\eta^2}{2}\mathbb{E}\!\left[\|\tilde g_k\|^2\mid x_k\right]\\
+  &= \widehat F_\mu(x_k) - \eta \|\nabla \widehat F_\mu(x_k)\|^2 - \eta\langle \nabla \widehat F_\mu(x_k), b_k\rangle
+  + \frac{L\eta^2}{2}\mathbb{E}\!\left[\|\tilde g_k\|^2\mid x_k\right].
 \end{align*}
-Since $\eta\le 1/L$, the coefficient satisfies $\eta-\frac{L\eta^2}{2}\ge \eta/2$, hence
+Using $-\langle a,b\rangle\le \frac{1}{2}\|a\|^2+\frac{1}{2}\|b\|^2$ and the bound
+\[
+  \mathbb{E}\!\left[\|\tilde g_k\|^2\mid x_k\right]
+  \le 2\|\nabla \widehat F_\mu(x_k)\|^2 + 2\|b_k\|^2 + \sigma^2,
+\]
+we obtain
 \[
   \mathbb{E}\!\left[\widehat F_\mu(x_{k+1})\mid x_k\right]
-  \le \widehat F_\mu(x_k) - \frac{\eta}{2}\|\nabla \widehat F_\mu(x_k)\|^2 + \frac{L\eta^2}{2}\sigma^2.
+  \le \widehat F_\mu(x_k)
+  -\left(\frac{\eta}{2}-L\eta^2\right)\|\nabla \widehat F_\mu(x_k)\|^2
+  +\left(\frac{\eta}{2}+L\eta^2\right)\|b_k\|^2
+  +\frac{L\eta^2}{2}\sigma^2.
+\]
+If $\eta\le 1/(2L)$, then $\frac{\eta}{2}-L\eta^2\ge \frac{\eta}{4}$ and $\frac{\eta}{2}+L\eta^2\le \eta$, so
+\[
+  \mathbb{E}\!\left[\widehat F_\mu(x_{k+1})\mid x_k\right]
+  \le \widehat F_\mu(x_k)
+  -\frac{\eta}{4}\|\nabla \widehat F_\mu(x_k)\|^2
+  +\eta\|b_k\|^2
+  +\frac{L\eta^2}{2}\sigma^2.
 \]
 Taking total expectation and summing over $k=0,\dots,K-1$ gives
 \[
-  \frac{\eta}{2}\sum_{k=0}^{K-1}\mathbb{E}\!\left[\|\nabla \widehat F_\mu(x_k)\|^2\right]
-  \le \widehat F_\mu(x_0)-\mathbb{E}[\widehat F_\mu(x_K)] + \frac{L\eta^2K}{2}\sigma^2
-  \le \widehat F_\mu(x_0)-\widehat F_\mu^{\inf} + \frac{L\eta^2K}{2}\sigma^2,
+  \frac{\eta}{4}\sum_{k=0}^{K-1}\mathbb{E}\!\left[\|\nabla \widehat F_\mu(x_k)\|^2\right]
+  \le \widehat F_\mu(x_0)-\mathbb{E}[\widehat F_\mu(x_K)] + \eta\sum_{k=0}^{K-1}\mathbb{E}\!\left[\|b_k\|^2\right] + \frac{L\eta^2K}{2}\sigma^2
+  \le \widehat F_\mu(x_0)-\widehat F_\mu^{\inf} + \eta\sum_{k=0}^{K-1}\mathbb{E}\!\left[\|b_k\|^2\right] + \frac{L\eta^2K}{2}\sigma^2,
 \]
-which rearranges to \eqref{eq:sgd-rate}.
+which rearranges to
+\[
+  \frac{1}{K}\sum_{k=0}^{K-1}\mathbb{E}\!\left[\|\nabla \widehat F_\mu(x_k)\|^2\right]
+  \;\le\;
+  \frac{4(\widehat F_\mu(x_0)-\widehat F_\mu^{\inf})}{\eta K}
+  + 2L\eta\sigma^2
+  + \frac{4}{K}\sum_{k=0}^{K-1}\mathbb{E}\!\left[\|b_k\|^2\right].
+\]
+Using $\sigma^2\le C_{\mathrm{var}}/M$ and $\mathbb{E}[\|b_k\|^2]\le C_{\mathrm{bias}}(1/M+(\epsilon')^2)$ from \eqref{eq:bias-var-explicit} for all $k$ yields \eqref{eq:sgd-rate}.
 \end{proof}
 
 \end{document}

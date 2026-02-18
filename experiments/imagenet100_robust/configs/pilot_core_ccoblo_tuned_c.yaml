@@ -1,0 +1,44 @@
+run_name: imagenet100_pilot_ccoblo_tuned_c
+seed: 0
+
+data:
+  num_classes: 100
+  image_size: 224
+  batch_size: 128
+  num_workers: 8
+
+train:
+  epochs: 10
+  optimizer: sgd
+  lr: 0.02
+  momentum: 0.9
+  weight_decay: 0.0001
+  amp: false
+  grad_clip_norm: 1.0
+  init_checkpoint: runs/imagenet100_robust/imagenet100_pilot_erm_r2/best.pt
+
+method:
+  name: ccoblo
+  params:
+    kappa: 0.0
+    families: [noise, blur, weather, digital]
+    delta: 0.05
+    theta: 0.2
+    eps: 0.005
+    mu: 0.3
+    inner_steps: 30
+    alpha_max: 2.0
+    denom_floor: 0.01
+    proxy_scale: 0.0
+    proxy_reduction: mean
+    warmup_epochs: 1
+    ce_weight: 1.0
+    robust_ce_weight: 1.5
+    robust_ce_mode: max
+    smooth_gap_weight: 8.0
+    smooth_gap_tau: 0.2
+    skip_nonfinite: true
+
+corruptions:
+  severity_min: 1
+  severity_max: 5

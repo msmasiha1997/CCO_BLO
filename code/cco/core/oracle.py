@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import numpy as np
 from ..problems.problem import Problem
 from tqdm import tqdm
@@ -55,19 +57,21 @@ class Oracle:
 
         return expected_estimation / self.problem.delta + self.problem.epsilon
 
-    def F_function(self, x: np.ndarray, min_s: float) -> float:
+    def F_function(self, x: np.ndarray, min_s: float, mu: float | None = None) -> float:
         """F function"""
+        mu_val = float(self.problem.mu if mu is None else mu)
         return self.problem.f_function(x) + (min_s / 2) * np.maximum(
-            min_s / self.problem.mu, 0
+            min_s / mu_val, 0
         )
 
     def x_partial_F_function(
-        self, x: np.ndarray, min_s: float, z_samples
+        self, x: np.ndarray, min_s: float, z_samples, mu: float | None = None
     ) -> np.ndarray:
         """Differentiation of F function with respect to x."""
+        mu_val = float(self.problem.mu if mu is None else mu)
         return self.problem.partial_f_function(x) + self.x_partial_s(
             x, min_s, z_samples
-        ) * np.maximum(min_s / self.problem.mu, 0)
+        ) * np.maximum(min_s / mu_val, 0)
 
     def x_partial_s(self, x, s, z_samples) -> np.ndarray:
         """Partial derivative of s."""

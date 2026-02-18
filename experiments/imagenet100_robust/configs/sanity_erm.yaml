@@ -1,0 +1,29 @@
+run_name: imagenet100_sanity_erm
+seed: 0
+
+data:
+  num_classes: 100
+  image_size: 64
+  batch_size: 8
+  num_workers: 0
+
+train:
+  epochs: 1
+  model_name: resnet18
+  optimizer: sgd
+  lr: 0.05
+  momentum: 0.9
+  weight_decay: 0.0001
+  amp: false
+  grad_clip_norm: 1.0
+  max_train_batches: 1
+  max_eval_batches: 1
+
+method:
+  name: erm
+  params:
+    skip_nonfinite: true
+
+corruptions:
+  severity_min: 1
+  severity_max: 3

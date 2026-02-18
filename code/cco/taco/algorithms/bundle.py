@@ -121,15 +121,21 @@ class BundleAlgorithm:
 
     def _solve_sub_problem(self):
 
-        Q = matrix(self._bundle_gram())
+        gram = self._bundle_gram()
+        gram = 0.5 * (gram + gram.T)
+        gram = gram + 1e-12 * np.eye(self.bundle_size)
+        Q = matrix(gram)
         p = matrix(self._linear_term())
         G = matrix(-1.0 * np.eye(self.bundle_size))
         h = matrix(np.zeros(self.bundle_size))
         A = matrix(np.ones(self.bundle_size), (1, self.bundle_size))
         b = matrix(1.0)
         solvers.options['show_progress'] = False
-        sol = solvers.qp(Q, p, G, h, A, b)
-        self.alpha = np.asarray(sol['x'], dtype=np.float64)[0]
+        try:
+            sol = solvers.qp(Q, p, G, h, A, b)
+            self.alpha = np.asarray(sol['x'], dtype=np.float64)[0]
+        except Exception:
+            self.alpha = (1.0 / self.bundle_size) * np.ones(self.bundle_size, dtype=np.float64)
 
         p = np.zeros(len(self.x), dtype=np.float64)
         for ii in range(len(self.alpha)):
@@ -189,7 +195,11 @@ class BundleAlgorithm:
     def _bundle_gram(self):
         vec_gradients = self.bundle_g1_infos_ncc[:self.bundle_size] + self.bundle_g1_infos_cc[:self.bundle_size]
         res = np.dot(vec_gradients, vec_gradients.T)
-        self.scaling_term = 1.0 / np.linalg.norm(res)
+        norm = np.linalg.norm(res)
+        if not np.isfinite(norm) or norm <= 0.0:
+            self.scaling_term = 1.0
+            return res.astype(float)
+        self.scaling_term = 1.0 / norm
         res = self.scaling_term * res.astype(float)
         return res
 
